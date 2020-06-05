@@ -1,5 +1,6 @@
-##rabbitmq的密码是 guest / guest
-
+##rabbitmq的默认密码是 guest / guest    
+---
+##rabbitmq包括了delayed-message-exchange插件
 ---
 **集群安装好了之后需要把rabbitmq-1,rabbitmq-2加入到集群之中**
 ```
