@@ -1,6 +1,6 @@
-1. rabbitmq的密码是 guest / guest
+##rabbitmq的密码是 guest / guest
 
-
+---
 **集群安装好了之后需要把rabbitmq-1,rabbitmq-2加入到集群之中**
 ```
 kubectl exec -it  rabbitmq-1 -n scm -- sh
@@ -14,9 +14,7 @@ rabbitmqctl stop_app
 rabbitmqctl join_cluster rabbit@rabbitmq-0.rabbitmq.scm.svc.cluster.local
 rabbitmqctl start_app
 rabbitmqctl cluster_status
-```
----
-```
+
 [root@master system]# kubectl get pods -n scm
 NAME         READY   STATUS    RESTARTS   AGE
 kafka-0      1/1     Running   0          26h
