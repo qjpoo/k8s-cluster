@@ -4,7 +4,7 @@ metadata:
   name: rabbitmq-data-claim
   namespace: rabbitmq
   annotations:
-    volume.beta.kubernetes.io/storage-class: "managed-nfs-storage"
+    volume.beta.kubernetes.io/storage-class: "dg-nfs-storage"
 spec:
   accessModes:
   - ReadWriteMany

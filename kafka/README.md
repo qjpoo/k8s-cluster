@@ -21,7 +21,7 @@ kafka-topics.sh --delete --topic test  --zookeeper zk-0.zk-svc.scm.svc.cluster.l
 
 4. **发送信息**
 ```
-kafka-console-producer.sh --broker-list localhost:319092 --topic test
+kafka-console-producer.sh --broker-list localhost:31902 --topic test
 1
 2323
 ```

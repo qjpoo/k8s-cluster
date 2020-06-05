@@ -75,7 +75,7 @@ spec:
           value: rabbit@$(POD_NAME).rabbitmq.$(POD_NAMESPACE).svc.cluster.local
         - name: RABBITMQ_CONFIG_FILE
           value: /var/lib/rabbitmq/rabbitmq.conf
-        image: harbor.scm.local/images/rabbitmq-delayed-message-exchange
+        image: qjpoo/rabbitmq-delayed-message-exchange
         imagePullPolicy: IfNotPresent
         livenessProbe:
           exec:
