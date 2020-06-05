@@ -71,8 +71,7 @@ spec:
       - name: k8szk
         imagePullPolicy: IfNotPresent
         #image: gcr.io/google_samples/k8szk:v3
-        #image: reg.dg.local/prod/k8szk:v3
-        image: harbor.scm.local/images/k8szk:v3
+        image: qjpoo/k8szk:v3
         resources:
           requests:
             memory: "1Gi"

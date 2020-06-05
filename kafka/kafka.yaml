@@ -82,8 +82,7 @@ spec:
       - name: k8skafka
         imagePullPolicy: IfNotPresent
         #image: gcr.io/google_samples/k8skafka:v1
-        #image: reg.dg.local/prod/k8skafka:v1
-        image: harbor.scm.local/images/k8skafka:v1
+        image: qjpoo/k8skafka:v1
         resources:
           requests:
             memory: "2Gi"
