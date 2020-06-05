@@ -1,0 +1,23 @@
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: rabbitmq
+    type: LoadBalancer
+  name: rabbitmq-lb
+  namespace: scm
+spec:
+  ports:
+  - name: http
+    port: 15672
+    protocol: TCP
+    targetPort: 15672
+    nodePort: 31672
+  - name: amqp
+    port: 5672
+    protocol: TCP
+    targetPort: 5672
+    nodePort: 30672
+  selector:
+    app: rabbitmq
+  type: NodePort

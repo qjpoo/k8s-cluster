@@ -1,0 +1,16 @@
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: rabbitmq
+  name: rabbitmq
+  namespace: scm
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+  - name: amqp
+    port: 5672
+    targetPort: 5672
+  selector:
+    app: rabbitmq
