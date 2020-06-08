@@ -36,7 +36,59 @@ kube-proxy-zcmn2                 21m          14Mi
 kube-scheduler-master            7m           15Mi
 metrics-server-65c88cd8-tdmdk    3m           13Mi
 
-3.再来试试metrics-server的API服务，执行命令kubectl proxy --port=8080，用来开代理端口；
+3.再来试试metrics-server的API服务，在master上执行命令kubectl proxy --port=8080，用来开代理端口；
 
 4.再开打一个同样的ssh连接，执行命令curl localhost:8080/apis/metrics.k8s.io/v1beta1/
+[root@master ~]# curl localhost:8080/apis/metrics.k8s.io/v1beta1/
+{
+  "kind": "APIResourceList",
+  "apiVersion": "v1",
+  "groupVersion": "metrics.k8s.io/v1beta1",
+  "resources": [
+    {
+      "name": "nodes",
+      "singularName": "",
+      "namespaced": false,
+      "kind": "NodeMetrics",
+      "verbs": [
+        "get",
+        "list"
+      ]
+    },
+    {
+      "name": "pods",
+      "singularName": "",
+      "namespaced": true,
+      "kind": "PodMetrics",
+      "verbs": [
+        "get",
+        "list"
+      ]
+    }
+  ]
+}
+
+5.查看名为kube-apiserver-node1的pod的基本信息，命令是：curl localhost:8080/apis/metrics.k8s.io/v1beta1/namespaces/kube-system/pods/kube-apiserver-master
+[root@master ~]# curl localhost:8080/apis/metrics.k8s.io/v1beta1/namespaces/kube-system/pods/kube-apiserver-master
+{
+  "kind": "PodMetrics",
+  "apiVersion": "metrics.k8s.io/v1beta1",
+  "metadata": {
+    "name": "kube-apiserver-master",
+    "namespace": "kube-system",
+    "selfLink": "/apis/metrics.k8s.io/v1beta1/namespaces/kube-system/pods/kube-apiserver-master",
+    "creationTimestamp": "2020-06-08T02:36:05Z"
+  },
+  "timestamp": "2020-06-08T02:36:24Z",
+  "window": "30s",
+  "containers": [
+    {
+      "name": "kube-apiserver",
+      "usage": {
+        "cpu": "208017498n",
+        "memory": "279780Ki"
+      }
+    }
+  ]
+}
 ```
