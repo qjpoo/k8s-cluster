@@ -59,7 +59,7 @@ find /opt/kafka/libs/ -name \*kafka_\* | head -1 | grep -o '\kafka[^\n]*'
 进入后先配置 Kafka Manager，增加一个 Zookeeper 地址。
 zk-svc:2181
 
-这里的 Kubernetes 集群地址为：192.168.11.122，并且在上面设置 Kafka-Manager 网络策略为 NodePort 方式，且设置端口为 30581，这里输入地址：http://192.168.11.122:30581/ 访问 Kafka Manager。
+这里的 Kubernetes 集群地址为：192.168.11.122，并且在上面设置 Kafka-Manager 网络策略为 NodePort 方式，且设置端口为 30581，这里输入地址：http://192.168.11.122:30581/ 访问 Kafka Manager。    
 kafka-manager也可以添加认证    
 
 Secure with basic authentication
