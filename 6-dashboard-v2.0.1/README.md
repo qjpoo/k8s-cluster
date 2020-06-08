@@ -1,3 +1,4 @@
+## 做好dashboard之后，你会发现pod没有显示出cpu，mem的信息，需要安装7-metrics-server-v0.3.6，就会显示了
 1. **修改dashboard.yaml(已修改)**
 ```
 #增加直接访问端口
