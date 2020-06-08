@@ -38,13 +38,12 @@ spec:
       生成的证书目录会有提示，把key，和crt修改一下名字为dashboard.key, dashboard.crt
      
 
-    ```
-
-   * 创建命名空间
+   * 创建命名空间   
      kubectl create namespace kubernetes-dashboard
 
-   * 创建kubernetes-dashboard-certs对象
+   * 创建kubernetes-dashboard-certs对象    
      kubectl create secret generic kubernetes-dashboard-certs --from-file=dashboard.key --from-file=dashboard.crt -n kubernetes-dashboard
+     ```
 
 4. 安装Dashboard
 ```
