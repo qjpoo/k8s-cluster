@@ -60,5 +60,13 @@ find /opt/kafka/libs/ -name \*kafka_\* | head -1 | grep -o '\kafka[^\n]*'
 zk-svc:2181
 
 这里的 Kubernetes 集群地址为：192.168.11.122，并且在上面设置 Kafka-Manager 网络策略为 NodePort 方式，且设置端口为 30581，这里输入地址：http://192.168.11.122:30581/ 访问 Kafka Manager。
+kafka-manager也可以添加认证    
+
+Secure with basic authentication
+Add the following env variables if you want to protect the web UI with basic authentication:
+
+KAFKA_MANAGER_AUTH_ENABLED: "true"
+KAFKA_MANAGER_USERNAME: username
+KAFKA_MANAGER_PASSWORD: password
 
 ```
