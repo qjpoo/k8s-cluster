@@ -24,3 +24,7 @@ data:
       cluster_partition_handling = autoheal
       ## queue master locator
       queue_master_locator=min-masters
+      #内存上限
+      vm_memory_high_watermark.absolute = 1.6GB
+      # 硬盘上限
+      disk_free_limit.absolute = 2GB
