@@ -17,8 +17,8 @@ spec:
   selector:
     k8s-app: kubernetes-dashboard
 ```
----
 2. **因为自动生成的证书很多浏览器无法使用，所以我们自己创建，注释掉dashboard.yaml中kubernetes-dashboard-certs对象声明**
+```
 #apiVersion: v1
 #kind: Secret
 #metadata:
@@ -27,7 +27,7 @@ spec:
 #  name: kubernetes-dashboard-certs
 #  namespace: kubernetes-dashboard
 #type: Opaque
-
+```
 3. **创建证书**
    * 下载mkcert工具，一键生成证书
      ![mkcert](https://github.com/FiloSottile/mkcert)
