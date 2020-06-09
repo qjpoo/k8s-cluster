@@ -1,0 +1,15 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik-dashboard-route-tls
+spec:
+  entryPoints:
+    - websecure
+  tls:
+    secretName: scm-local-tls
+  routes:
+    - match: Host(`traefik.scm.local`)
+      kind: Rule
+      services:
+        - name: traefik
+          port: 8080
