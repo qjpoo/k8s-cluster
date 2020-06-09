@@ -33,3 +33,7 @@ kubectl create -f kubernetes-dashboard-route.yaml -n kubernetes-dashboard
 如果有问题，可以查看
 kubectl logs -f traefik-ingress-controller-fnh94 -n kube-system
 ```
+
+3. 效果
+![traefik](./traefik.png)
+![dash](./dash.png)
