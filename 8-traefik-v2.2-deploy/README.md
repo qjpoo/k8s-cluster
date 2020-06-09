@@ -2,6 +2,7 @@
 
 - traefik-deploy-file：traefik v2.2 部署文件
 - traefik-route-file：traefik v2.2 路由规则配置文件
+- tls.crt tls.key是证书和key，测试用的
 
 ---
 1. 安装traefik
@@ -35,5 +36,5 @@ kubectl logs -f traefik-ingress-controller-fnh94 -n kube-system
 ```
 
 3. 效果
-![traefik](./traefik.png)
+![traefik](./traefik.png)   
 ![dash](./dash.png)
