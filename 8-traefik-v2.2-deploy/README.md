@@ -12,7 +12,8 @@ kubectl create -f 01-traefik-rbac.yaml
 kubectl create -f 02-traefik-config.yaml -n kube-system # 安装在kube-system里面
 kubectl create -f 03-traefik-deploy.yaml -n kube-system
 ```
-2. 路由配置有两种方式，我只用crd，ingress详见里面的文档traefik-ingress-file
+2. 路由配置有两种方式，我只用crd，ingress详见里面的文档traefik-ingress-file   
+mkcert的链接地址如下：    
 ![mkcert](https://github.com/FiloSottile/mkcert)
 ```
 首先你要创建证书，可以用开源工具mkcert，以前的文档里面有说明，很简单，两步就可以
