@@ -1,0 +1,16 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik-jenkins-route-tls
+  namespace: default
+spec:
+  entryPoints:
+    - websecure
+  tls:
+    secretName: scm-local-tls
+  routes:
+    - match: Host(`consul.scm.local`)
+      kind: Rule
+      services:
+        - name: consul
+          port: 8500
