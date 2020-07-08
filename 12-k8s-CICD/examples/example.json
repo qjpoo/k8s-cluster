@@ -1,0 +1,16 @@
+{
+"CheckboxParameter": [
+    {
+      "key": "j-1",
+      "value": "value-1"
+    },
+    {
+      "key": "j-2",
+      "value": "value-2"
+    },
+    {
+      "key": "j-3",
+      "value": "value-3"
+    }
+  ]
+}
