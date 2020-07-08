@@ -1,0 +1,34 @@
+server:
+ port: 9000
+spring:
+  cloud:
+    consul:
+      host: 127.0.0.1
+      port: 8500
+      discovery:
+        register: true
+        prefer-ip-address: true
+        health-check-path: /actuator/health
+    gateway:
+      routes:
+        - id: test_route
+          uri: lb://service-provider
+          predicates:
+            - Path=/service-provider/{segment}
+          filters:
+            - SetPath=/{segment}
+            - name: Hystrix
+              args:
+                name: service-provider-fallback
+                fallbackUri: forward:/service-provider-error
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY,BAD_REQUEST
+      default-filters:
+        - name: Hystrix
+          args:
+            name: fallbackcmd
+            fallbackUri: forward:/default-error
+  application:
+    name: PC-ApiGateWay
