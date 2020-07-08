@@ -1,0 +1,105 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: scm
+  labels:
+    app: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  revisionHistoryLimit: 10
+  minReadySeconds: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      initContainers:
+      - name: volume-mount-hack
+        image: harbor.scm.local/php/busybox:latest
+        command: ["sh", "-c", "chown -R 999:999 /var/www/html"]
+        volumeMounts:
+        - name: nginx-html-volume
+          mountPath: /var/www/html
+      containers:
+      - name: nginx
+        #image: harbor.scm.local/php/nginx:0.0.4
+        image: harbor.scm.local/php/nginx
+        #image: harbor.scm.local/php/nginx:alpine
+        #image: nginx
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+          name: http
+        livenessProbe:
+          tcpSocket:
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 800Mi
+          requests:
+            cpu: 500m
+            memory: 400Mi
+        volumeMounts:
+        - name: nginx-config-volume
+          mountPath: /usr/local/nginx/conf.d
+        - name: nginx-log-volume
+          mountPath: /usr/local/nginx/log
+          readOnly: false
+        - name: nginx-html-volume
+          mountPath: /var/www/html
+          readOnly: false
+      volumes:
+      #- name: nginx-config-volume
+      #  configMap:
+      #    name: nginx-config
+      - name: nginx-config-volume
+        persistentVolumeClaim:
+          claimName: nginx-config-pvc
+      - name: nginx-log-volume
+        persistentVolumeClaim:
+          claimName: nginx-log-pvc
+      - name: nginx-html-volume
+        persistentVolumeClaim:
+          claimName: nginx-html-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  namespace: scm
+  annotations:
+    traefik.ingress.kubernetes.io/affinity: "true"
+    traefik.ingress.kubernetes.io/session-cookie-name: "backend"
+spec:
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  selector:
+    app: nginx
+  type: NodePort
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    nodePort: 30080
+    targetPort: http
