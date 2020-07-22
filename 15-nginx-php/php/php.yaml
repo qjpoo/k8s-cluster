@@ -1,0 +1,97 @@
+#---
+#apiVersion: v1
+#kind: PersistentVolumeClaim
+#metadata:
+#  name: php-html-pvc
+#  namespace: scm
+#  annotations:
+#    volume.beta.kubernetes.io/storage-class: "dg-nfs-storage"
+#spec:
+#  accessModes:
+#  - ReadWriteMany
+#  resources:
+#    requests:
+#      storage: 30Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-fpm
+  namespace: scm
+  labels:
+    app: php-fpm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php-fpm
+  revisionHistoryLimit: 10
+  minReadySeconds: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: php-fpm
+    spec:
+      initContainers:
+      - name: volume-mount-hack
+        image: harbor.scm.local/php/busybox:latest
+        command: ["sh", "-c", "chown -R 999:999 /var/www/html"]
+        volumeMounts:
+        - name: nginx-html-volume
+          mountPath: /var/www/html
+      containers:
+      - name: php-fpm
+        image: harbor.scm.local/php/php-fpm
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9000
+          name: php-fpm
+        livenessProbe:
+          tcpSocket:
+            port: 9000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 9000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1000Mi
+          requests:
+            cpu: 500m
+            memory: 500Mi
+        volumeMounts:
+        - name: nginx-html-volume
+          mountPath: /var/www/html
+      volumes:
+      #- name: php-html-volume
+      #  persistentVolumeClaim:
+      #    claimName: php-html-pvc
+      - name: nginx-html-volume
+        persistentVolumeClaim:
+          claimName: nginx-html-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-fpm
+  namespace: scm
+spec:
+  selector:
+    app: php-fpm
+  #type: NodePort
+  ports:
+  - name: php-fpm
+    protocol: TCP
+    port: 9000
+    #nodePort: 39754
+    targetPort: php-fpm
