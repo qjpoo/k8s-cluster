@@ -148,6 +148,8 @@ helm install promtail -f promtail/values.yaml -n promtail --namespace scm
 安装
 kubectl create -f .
 ```
-![效果图](showme.png)
+=======
+- ![datasource](grafana.png)
+- ![效果图](showme.png)
 
 thank you !!!
