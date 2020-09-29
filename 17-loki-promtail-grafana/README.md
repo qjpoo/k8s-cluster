@@ -8,6 +8,7 @@
 ├── 03-grafana-deployment.yaml  ==> grafana deployment文件
 ├── grafana.png                 ==> grafana datasource config picture
 └── README.md
+└── showme.png			==> 效果图
 ```
 ## loki的组成:
 1. loki是主服务器,负责存储日志和处理查询
