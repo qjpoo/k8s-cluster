@@ -1,3 +1,14 @@
+# 文件说明
+```
+[root@master 17-loki-promtail-grafana]# tree
+.
+├── 00-loki-values.yaml         ==> loki的values.yaml文件
+├── 01-promtail-values.yaml     ==> 修改过的promtail values.yaml文件
+├── 02-grafana-configmap.yaml   ==> grafana configmap
+├── 03-grafana-deployment.yaml  ==> grafana deployment文件
+├── grafana.png                 ==> grafana datasource config picture
+└── README.md
+```
 ## loki的组成:
 1. loki是主服务器,负责存储日志和处理查询
 2. promtail是代理,负责收集日志并将其发送给loki
@@ -130,7 +141,12 @@ helm install promtail -f promtail/values.yaml -n promtail --namespace scm
 ```
 
 # grafana安装
+```
 我是用的yaml文件来搞的,文件上传了
 注意修改namespace和storageclass的名字,数据我已做了持久化,妈妈在也不用担心我的数据没有了.
+安装
+kubectl create -f .
+```
 
 
+thank you !!!
