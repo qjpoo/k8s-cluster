@@ -1,0 +1,131 @@
+#apiVersion: v1
+#kind: PersistentVolume
+#metadata:
+#  name: "grafana-data-pv"
+#  labels:
+#    name: grafana-data-pv
+#    release: stable
+#spec:
+#  capacity:
+#    storage: 10Gi
+#  accessModes:
+#    - ReadWriteOnce
+#  persistentVolumeReclaimPolicy: Recycle
+#  nfs:
+#    path: /nfs/grafana/data
+#    server: 192.168.65.3
+
+---
+#apiVersion: v1
+#kind: PersistentVolumeClaim
+#metadata:
+#  name: grafana-data-pvc
+#  namespace: ns-monitor
+#spec:
+#  accessModes:
+#    - ReadWriteOnce
+#  resources:
+#    requests:
+#      storage: 5Gi
+#  selector:
+#    matchLabels:
+#      name: grafana-data-pv
+#      release: stable
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: grafana-data-pvc
+  namespace: scm
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: dg-nfs-storage
+  resources:
+    requests:
+      storage: 10Gi
+
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  labels:
+    app: grafana
+  name: grafana
+  namespace: scm
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:master
+          imagePullPolicy: IfNotPresent
+          resources:
+            # keep request = limit to keep this container in guaranteed class
+            limits:
+              cpu: 1000m
+              memory: 2048Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          env:
+            - name: GF_AUTH_BASIC_ENABLED
+              value: "true"
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "false"
+          readinessProbe:
+            httpGet:
+              path: /login
+              port: 3000
+          volumeMounts:
+            - mountPath: /var/lib/grafana
+              name: grafana-data-volume
+            - name: sys-time
+              mountPath: /etc/localtime
+            - name: grafana-etc-volume
+              mountPath: /etc/grafana/
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+      volumes:
+        #- name: grafana-data-volume
+        #  persistentVolumeClaim:
+        #    claimName: grafana-data-pvc
+        - name: grafana-data-volume
+          persistentVolumeClaim:
+            claimName: grafana-data-pvc
+        - name: sys-time
+          hostPath:
+            path: /etc/localtime
+        - name: grafana-etc-volume
+          configMap:
+            name: grafana-etc
+            items:
+            - key: grafana.ini
+              path: grafana.ini
+---
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: grafana
+  name: grafana-service
+  namespace: scm
+spec:
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30300
+  selector:
+    app: grafana
+  type: NodePort

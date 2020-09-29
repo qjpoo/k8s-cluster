@@ -84,12 +84,53 @@ zk         3/3     117d
 NAME    	REVISION	UPDATED                 	STATUS  	CHART          	APP VERSION	NAMESPACE
 loki    	1       	Fri Sep 18 14:05:01 2020	DEPLOYED	loki-0.31.1    	v1.6.0     	scm
 promtail	1       	Fri Sep 18 15:05:51 2020	DEPLOYED	promtail-0.24.0	v1.6.0     	scm
+```
 
+# 安装promtail
+```
+1. 修改promtail的values.yaml文件, 这里我的docker Root变化了,修改成/dgmall/docker了,要把values文件修改一下o
+查看docker Root
+[root@master ~]# docker info|grep -i root
+Docker Root Dir: /dgmall/docker
 
+修改如下:
+103 volumes:
+104 - name: docker
+105   hostPath:
+106     #path: /var/lib/docker/containers
+107     path: /dgmall/docker/containers
+108 - name: pods
+109   hostPath:
+110     path: /var/log/pods
+111
+112 # Custom volumes together with the default ones
+113 extraVolumes: []
+114
+115 volumeMounts:
+116 - name: docker
+117   mountPath: /dgmall/docker/containers
+118   readOnly: true
+119 - name: pods
+120   mountPath: /var/log/pods
+121   readOnly: true
 
+attention attention attention 注意, 重要的事情说三遍,说三遍,说三遍:
+修改promtail连接loKi服务器的地址: 33行,如果不对,一切白搞
+ 31 loki:
+ 32   #serviceName: ""  # Defaults to "${RELEASE}-loki" if not set
+ 33   serviceName: "loki-headless"  # Defaults to "${RELEASE}-loki" if not set
+ 34   servicePort: 3100
+ 35   serviceScheme: http
+ 36   # user: user
+ 37   # password: pass
 
-
+安装
+helm install promtail -f promtail/values.yaml -n promtail --namespace scm
 
 ```
+
+# grafana安装
+我是用的yaml文件来搞的,文件上传了
+注意修改namespace和storageclass的名字,数据我已做了持久化,妈妈在也不用担心我的数据没有了.
 
 
