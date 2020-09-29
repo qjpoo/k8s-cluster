@@ -152,4 +152,5 @@ kubectl create -f .
 - ![datasource](grafana.png)
 - ![效果图](showme.png)
 
+学习和讨论请加入QQ群: 451353538  
 thank you !!!
