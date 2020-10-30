@@ -1,0 +1,16 @@
+# STEP 1: Build
+FROM node:12.18.1
+LABEL authors="带头大哥"
+WORKDIR /h5
+COPY . /h5/bzj-h5
+WORKDIR /h5/bzj-h5
+RUN npm install -g cnpm --registry=https://registry.npm.taobao.org && cnpm install && cnpm run build:prod
+
+# STEP 2: Setup
+FROM nginx:1.17
+# 在k8s环境下，将conf文件以configmap形式进行映射，测试docker环境下需要放开
+#COPY --from=0 /app/_nginx/nginx.conf /etc/nginx/nginx.conf
+#COPY --from=0 /app/_nginx/* /etc/nginx/
+COPY --from=0 /h5/bzj-h5/dist /etc/nginx/html
+CMD [ "nginx", "-g", "daemon off;"]
+
