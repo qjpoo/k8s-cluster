@@ -7,6 +7,7 @@
 ├── redis.conf                配置文件
 ├── redis-conf.yaml           配置yaml文件
 └── redis-sts.yaml            sts文件
+single-redis.md               redis单实例
 
 1. 安装
 创建cm的方法:
