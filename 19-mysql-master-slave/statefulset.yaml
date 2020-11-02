@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mysql
+  namespace: scm
 spec:
   selector:
     matchLabels:
@@ -39,7 +40,7 @@ spec:
         - name: config-map
           mountPath: /mnt/config-map
       - name: clone-mysql
-        image: gcr.io/google-samples/xtrabackup:1.0
+        image: qjpoo/xtrabackup:1.0
         command:
         - bash
         - "-c"
@@ -94,7 +95,7 @@ spec:
           periodSeconds: 2
           timeoutSeconds: 1
       - name: xtrabackup
-        image: gcr.io/google-samples/xtrabackup:1.0
+        image: qjpoo/xtrabackup:1.0
         ports:
         - name: xtrabackup
           containerPort: 3307
@@ -166,7 +167,7 @@ spec:
   #        storage: 10Gi
   volumeClaimTemplates:
   - metadata:
-      name: mysql-storage
+      name: data
     spec:
       accessModes:
       - ReadWriteMany
