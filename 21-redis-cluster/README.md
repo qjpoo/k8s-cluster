@@ -317,6 +317,7 @@ redis-app-5                              1/1     Running   0          2h
 redis-app-6                              1/1     Running   0          57s
 redis-app-7                              1/1     Running   0          30s
 添加集群节点
+注意这个添加集群节点, 是用centos做基础镜像做的, 而上面是用ubuntu做的
 [root@rke redis]#kubectl exec -it centos /bin/bash
 [root@centos /]# redis-trib add-node \
 `dig +short redis-app-6.redis-service.default.svc.cluster.local`:6379 \
@@ -412,7 +413,6 @@ Redis集群对客户端通信协议做了比较大的修改，为了追求性能
 	Since cluster nodes are not able to proxy requests, clients may be redirected to other nodes using redirection errors
 	This is why you are are having this issues with redis cluster behind LB and this is also the reason why it is (most probably) not going to work.
 	You may probably need to use some proxy (e.g. official redis-cluster-poxy) that is running inside of k8s cluster, can reach all internal IPs of redis cluster and would handle redirects.
-
 
 
 
