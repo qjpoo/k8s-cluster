@@ -414,6 +414,7 @@ Redis集群对客户端通信协议做了比较大的修改，为了追求性能
 	This is why you are are having this issues with redis cluster behind LB and this is also the reason why it is (most probably) not going to work.
 	You may probably need to use some proxy (e.g. official redis-cluster-poxy) that is running inside of k8s cluster, can reach all internal IPs of redis cluster and would handle redirects.
 
+    2.如果想为K8s集群外提供服务, 要使用hostnetwork网络模式
 
 
 
