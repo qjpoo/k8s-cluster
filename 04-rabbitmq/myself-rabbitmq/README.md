@@ -34,4 +34,8 @@ kafka-svc     ClusterIP   None           <none>        31902/TCP                
 rabbitmq      ClusterIP   None           <none>        5672/TCP                         19h
 rabbitmq-lb   NodePort    10.10.78.119   <none>        15672:31672/TCP,5672:30672/TCP   19h
 zk-svc        ClusterIP   None           <none>        2888/TCP,3888/TCP                43h
+
+进入到rabbitmq-0里面
+设置成镜像队列
+# rabbitmqctl set_policy ha-all "^" '{"ha-mode":"all"}'    //["^"匹配所有]
 ```
