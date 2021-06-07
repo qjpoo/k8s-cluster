@@ -1,0 +1,12 @@
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: redis-cluster-operator
+subjects:
+- kind: ServiceAccount
+  name: redis-cluster-operator
+  namespace: redis-cluster
+roleRef:
+  kind: ClusterRole
+  name: redis-cluster-operator
+  apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,16 @@
+apiVersion: redis.kun/v1alpha1
+kind: DistributedRedisCluster
+metadata:
+  annotations:
+    # if your operator run as cluster-scoped, add this annotations
+    redis.kun/scope: cluster-scoped
+  name: example-distributedrediscluster
+spec:
+  image: redis:5.0.4-alpine
+  masterSize: 3
+  clusterReplicas: 1
+  storage:
+    type: persistent-claim
+    size: 1Gi
+    class: dg-nfs-storage
+    deleteClaim: true
