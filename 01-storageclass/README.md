@@ -3,7 +3,16 @@
 
 
 ## 主要是修改名称空间和NFS服务器的地址和路径就可以了
+```
+高版本(v1.20)的kubernetes好像是弃用nfs了, 要使用在apiserver的yaml文件添加参数:
 
+修改/etc/kubernetes/manifests/kube-apiserver.yaml 文件
+添加添加- --feature-gates=RemoveSelfLink=false
+
+然后重新生成一下pod
+mv /etc/kubernetes/manifests/kube-apiserver.yaml /tmp/kube-apiserver.yaml
+mv /tmp/kube-apiserver.yaml /etc/kubernetes/manifests/kube-apiserver.yaml
+```
 ---
 ## 另附nfs服务器的安装步骤     
 ```    
