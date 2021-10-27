@@ -1,0 +1,96 @@
+apiVersion: v1
+data:
+  config.yml: |
+    modules:
+      http_2xx:
+        prober: http
+        http:
+          method: GET
+          preferred_ip_protocol: "ip4"
+      http_get:
+        prober: http
+        timeout: 15s
+        http:
+          valid_status_codes: [200]
+          preferred_ip_protocol: "ip4"
+          method: GET
+          fail_if_body_not_matches_regexp:
+            - '"result":"我还活着"'
+      http_post_2xx:
+        prober: http
+        http:
+          method: POST
+          preferred_ip_protocol: "ip4"
+      tcp:
+        prober: tcp
+      ping:
+        prober: icmp
+        timeout: 3s
+        icmp:
+          preferred_ip_protocol: "ip4"
+      dns_k8s:
+        prober: dns
+        timeout: 5s
+        dns:
+          transport_protocol: "tcp"
+          preferred_ip_protocol: "ip4"
+          query_name: "kubernetes.default.svc.cluster.local"
+          query_type: "A"
+kind: ConfigMap
+metadata:
+  name: blackbox-exporter
+  namespace: monitoring
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    name: blackbox-exporter
+    cluster: ali-huabei2-dev
+  name: blackbox-exporter
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: blackbox-exporter
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        name: blackbox-exporter
+        cluster: ali-huabei2-dev
+    spec:
+      containers:
+      - image: prom/blackbox-exporter:v0.16.0
+        name: blackbox-exporter
+        ports:
+        - containerPort: 9115
+        volumeMounts:
+        - name: config
+          mountPath: /etc/blackbox_exporter
+        args:
+        - --config.file=/etc/blackbox_exporter/config.yml
+        - --log.level=info
+      volumes:
+      - name: config
+        configMap:
+          name: blackbox-exporter
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: blackbox-exporter
+    cluster: ali-huabei2-dev
+  name: blackbox-exporter
+  namespace: monitoring
+spec:
+  selector:
+    name: blackbox-exporter
+  ports:
+  - name: http-metrics
+    port: 9115
+    targetPort: 9115

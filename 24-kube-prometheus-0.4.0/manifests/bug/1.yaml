@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: blackbox-exporter
+  namespace: monitoring
+spec:
+  jobName: http-get
+  interval: 60s
+  module: http_2xx
+  prober:
+    url: blackbox-exporter.monitoring.svc:19115
+    scheme: http
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+      - http://www.baidu.com

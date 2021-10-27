@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: blackbox
+    servicename: blackbox
+  name: blackbox
+  namespace: monitoring
+spec:
+  #type: NodePort
+  ports:
+  - name: http
+    port: 9115
+    targetPort: http
+    #nodePort: 23000
+  selector:
+    app: blackbox

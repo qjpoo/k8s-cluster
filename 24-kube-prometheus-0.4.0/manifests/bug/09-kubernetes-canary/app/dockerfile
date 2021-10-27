@@ -1,0 +1,24 @@
+# 使用官方提供的 Python 开发镜像作为基础镜像
+FROM python:3.7.3-slim
+
+# 创建目录
+RUN mkdir /app
+
+# 将工作目录切换为 /app 该目录为容器中的目录，相当于cd进入这个目录
+WORKDIR /app
+
+# 将Dockerfile所在目录下的这两个文件拷贝到 /app 下
+ADD myapp.py requirements.txt /app/
+
+# 使用 pip 命令安装这个应用所需要的依赖，这里通过-r指定依赖包的名称文件
+RUN pip install --trusted-host mirrors.aliyun.com -r requirements.txt
+
+# 允许外界访问容器的 5555 端口
+EXPOSE 5555
+
+# 设置版本号
+ENV VERSION 1.0
+
+# 设置容器进程为：python myapp.py，即：这个 Python 应用的启动命令
+CMD ["python", "myapp.py"]
+

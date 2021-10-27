@@ -1,0 +1,134 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: node-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: node.rules
+    rules:
+    - alert: NodeFilesystemUsage
+      expr: |
+        100 - (node_filesystem_free_bytes / node_filesystem_size_bytes) * 100 > 90
+      for: 1m
+      labels:
+        severity: warning 
+      annotations:
+        summary: "Instance {{ $labels.instance }} : {{ $labels.mountpoint }} 分区使用率过高"
+        description: "{{ $labels.instance }}: {{ $labels.mountpoint }} 分区使用大于90% (当前值: {{ $value }})"
+
+    #根据当前一小时内磁盘增长量，判断磁盘在 4 个小时内会不会被写满
+    - alert: HostDiskWillFillIn4Hours
+      expr: predict_linear(node_filesystem_free_bytes{fstype!~"tmpfs"}[1h], 4 * 3600) < 0
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host disk will fill in 4 hours (instance {{ $labels.instance }})
+        description: "Disk will fill in 4 hours at current write rate VALUE = {{ $value }} LABELS: {{ $labels }}"
+
+    - alert: HostOutOfInodes
+      expr: node_filesystem_files_free{mountpoint ="/rootfs"} / node_filesystem_files{mountpoint ="/rootfs"} * 100 < 10
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host out of inodes (instance {{ $labels.instance }})
+        description: "Disk is almost running out of available inodes (< 10% left) VALUE = {{ $value }} LABELS: {{ $labels }}"
+
+    - alert: NodeMemoryUsage
+      expr: |
+        100 - (node_memory_MemFree_bytes+node_memory_Cached_bytes+node_memory_Buffers_bytes) / node_memory_MemTotal_bytes * 100 > 90
+      for: 1m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Instance {{ $labels.instance }} 内存使用率过高"
+        description: "{{ $labels.instance }}内存使用大于90% (当前值: {{ $value }})"
+
+    - alert: NodeCPUUsage    
+      expr: |
+        100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) by (instance) * 100) > 90 
+      for: 1m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Instance {{ $labels.instance }} CPU使用率过高"       
+        description: "{{ $labels.instance }}CPU使用大于90% (当前值: {{ $value }})"
+
+    - alert: KubeNodeNotReady
+      expr: |
+        kube_node_status_condition{condition="Ready",status="true"} == 0
+      for: 1m
+      labels:
+        severity: error
+      annotations:
+        message: '{{ $labels.node }} 已经有10多分钟没有准备好了.'
+
+    - alert: UnusualDiskReadRate
+      expr: sum by (instance) (irate(node_disk_read_bytes_total[2m])) / 1024 / 1024 > 10
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Unusual disk read rate (instance {{ $labels.instance }})"
+        description: "Disk is probably reading too much data (> 10 MB/s)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+    - alert: UnusualDiskWriteRate
+      expr: sum by (instance) (irate(node_disk_written_bytes_total[2m])) / 1024 / 1024 > 10
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Unusual disk write rate (instance {{ $labels.instance }})"
+        description: "Disk is probably writing too much data (> 10 MB/s)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+    
+    - alert: UnusualDiskReadLatency
+      expr: rate(node_disk_read_time_seconds_total[1m]) / rate(node_disk_reads_completed_total[1m]) > 0.1 and rate(node_disk_reads_completed_total[1m]) > 0
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Unusual disk read latency (instance {{ $labels.instance }})"
+        description: "Disk latency is growing (read operations > 100ms)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+
+    - alert: UnusualDiskWriteLatency
+      expr: rate(node_disk_write_time_seconds_total[1m]) / rate(node_disk_writes_completed_total[1m]) > 0.1 and rate(node_disk_writes_completed_total[1m]) > 0
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Unusual disk write latency (instance {{ $labels.instance }})"
+        description: "Disk latency is growing (write operations > 100ms)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+    - alert: DiskReadIOPS
+      expr: rate(node_disk_reads_completed_total[3m]) > 300
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "disk read iops too high (instance {{ $labels.instance }})"
+        description: "Disk read iops is growing (read iops operations > 300)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+    - alert: DiskWriteIOPS
+      expr: rate(node_disk_writes_completed_total[3m]) > 350
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "disk write iops too high (instance {{ $labels.instance }})"
+        description: "Disk write iops is growing (write iops operations > 350)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+
+    - alert: HostOomKillDetected
+      expr: increase(node_vmstat_oom_kill[5m]) > 0
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: Host OOM kill detected (instance {{ $labels.instance }})
+        description: "OOM kill detected VALUE = {{ $value }} LABELS: {{ $labels }}"

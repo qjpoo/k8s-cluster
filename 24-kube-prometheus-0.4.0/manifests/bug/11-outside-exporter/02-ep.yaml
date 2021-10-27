@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: outside-node-exporter
+  namespace: monitoring
+  labels:
+      k8s-app: outside-node-exporter
+subsets:
+- addresses:
+  - ip: 192.168.1.7
+    #nodeName: 192.168.1.7-nginx
+  - ip: 192.168.1.17
+    #nodeName: 192.168.1.17-prod-nginx
+  - ip: 192.168.1.15
+    #nodeName: 192.168.1.15-elk
+  - ip: 192.168.1.28
+    #nodeName: 192.168.1.28-bind
+  ports:
+    - name: http
+      port: 9100
+      protocol: TCP

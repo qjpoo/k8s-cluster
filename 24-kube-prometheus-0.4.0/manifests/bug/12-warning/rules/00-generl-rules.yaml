@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: node-isup-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: general.rules
+    rules:
+    - alert: InstanceDown
+      expr: up == 0
+      for: 1m
+      labels:
+        severity: error 
+      annotations:
+        summary: "Instance {{ $labels.instance }} 停止工作"
+        description: "alert !!! {{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minutes."

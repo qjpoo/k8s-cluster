@@ -1,0 +1,5 @@
+- targets:
+   - https://www.baidu.com
+  labels:
+    instance: 'url_status'
+    tags: 'website'

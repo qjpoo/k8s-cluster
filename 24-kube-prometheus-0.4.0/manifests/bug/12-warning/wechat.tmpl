@@ -1,0 +1,25 @@
+{{ define "__alert_list" }}{{ range . -}}
+告警级别: {{ .Labels.severity }}
+告警信息: {{ index .Annotations "summary"  }}
+告警时间: {{ (.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}
+------------------------------
+{{ end -}}{{ end }}
+
+{{ define "__resolved_list" }}{{ range . -}}
+告警级别: {{ .Labels.severity }}
+告警信息: {{ index .Annotations "summary" }}
+告警时间: {{ (.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}
+恢复时间: {{ (.EndsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}
+------------------------------
+{{ end -}}{{ end }}
+
+{{ define "wechat.tmpl" }}
+{{- if gt (len .Alerts.Firing) 0 -}}
+====侦测到{{ .Alerts.Firing | len  }}个故障====
+{{ template "__alert_list" .Alerts.Firing }}
+{{ end -}}
+{{- if gt (len .Alerts.Resolved) 0 -}}
+====恢复{{ .Alerts.Resolved | len  }}个故障====
+{{ template "__resolved_list" .Alerts.Resolved }}
+{{- end -}}
+{{ end }}

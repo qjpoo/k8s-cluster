@@ -1,0 +1,48 @@
+# 全局配置项
+global:
+  resolve_timeout: 5m # 处理超时时间，默认为5min
+  smtp_smarthost: 'smtp.exmail.qq.com:25'
+  smtp_from: 'admin@qq.com'
+  smtp_auth_username: 'admin@qq.com'
+  smtp_auth_password: 'OPcoYDZZuioqHGY'
+  smtp_require_tls: false
+
+# 定义模板信息
+templates:
+  - '*.tmpl'
+
+# 定义路由树信息
+route:
+  group_by: [alertname]  # 报警分组依据
+  receiver: alert   # 设置默认接收人
+  group_wait: 20s        # 最初即第一次等待多久时间发送一组警报的通知
+  group_interval: 20s    # 在发送新警报前的等待时间
+  repeat_interval: 10m    # 重复发送告警时间。默认1h
+
+# 定义基础告警接收者
+receivers:
+  - name: 'alert' # 警报
+    email_configs: # 邮箱配置
+    - to: 'hello@jd.com'  # 接收警报的email配置，多个邮箱用“,”分隔
+      html: '{{ template "email.html" . }}' # 设定邮箱的内容模板
+      headers: { Subject: "[WARN] 报警邮件"} # 接收邮件的标题
+      send_resolved: true
+    #webhook_configs: # webhook配置，不需要可以注释掉
+    #- url: 'http://127.0.0.1:5001'
+
+    wechat_configs: # 企业微信报警配置,不需要可以注释掉
+    - corp_id: '9ujcbm71ekkk12uiwsa' # 企业信息(我的企业-->CorpId[在底部])
+      #to_user: '@all'
+      to_party: '2' # 接收组的id
+      agent_id: '1000011' # (企业微信-->自定应用-->AgentId)
+      api_secret: 'OpilrAfvVkpA0hT8gRURAB77Cod_op9whgdu' # 企业微信(企业微信-->自定应用-->Secret)
+      message: '{{ template "wechat.tmpl" . }}' # 发送消息模板的设定
+      send_resolved: true
+
+# 一个inhibition规则是在与另一组匹配器匹配的警报存在的条件下，使匹配一组匹配器的警报失效的规则。两个警报必须具有一组相同的标签。
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname']

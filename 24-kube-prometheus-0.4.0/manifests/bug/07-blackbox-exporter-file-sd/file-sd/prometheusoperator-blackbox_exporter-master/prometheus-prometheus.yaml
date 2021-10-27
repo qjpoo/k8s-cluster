@@ -1,0 +1,64 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  labels:
+    prometheus: k8s
+  name: k8s
+  namespace: monitoring
+spec:
+  alerting:
+    alertmanagers:
+    - name: alertmanager-main
+      namespace: monitoring
+      port: web
+  baseImage: registry-vpc.cn-shenzhen.aliyuncs.com/****/prometheus
+  nodeSelector:
+#    beta.kubernetes.io/os: linux
+     dedicatedfor: publicservice
+  replicas: 1
+  additionalScrapeConfigs:
+    name: additional-scrape-configs
+    key: prometheus-additional.yaml
+  resources:
+    requests:
+      memory: 2Gi
+    limits:
+      memory: 4Gi
+  ruleSelector:
+    matchLabels:
+      prometheus: k8s
+      role: alert-rules
+  securityContext:
+    fsGroup: 2000
+    runAsNonRoot: false
+    runAsUser: 0
+  serviceAccountName: prometheus-k8s
+  serviceMonitorNamespaceSelector: {}
+  serviceMonitorSelector: {}
+  version: v2.5.0
+  storage:
+    volumeClaimTemplate:
+      spec:
+        selector:
+          matchLabels:
+            app: prometheus-data
+        resources:
+          requests:
+            storage: 50Gi
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: prometheus-pv
+  labels:
+    app: prometheus-data
+spec:
+  capacity:
+    storage: 50Gi
+  persistentVolumeReclaimPolicy: Delete
+  accessModes:
+  - ReadWriteOnce # required
+  nfs:
+    server: 2d****0e-vcm27.cn-shenzhen.nas.aliyuncs.com
+    path: "/prometheus"
+

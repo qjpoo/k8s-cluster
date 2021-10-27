@@ -1,0 +1,1 @@
+kubectl create configmap "grafana-etc" --from-file=grafana.ini --namespace=monitoring

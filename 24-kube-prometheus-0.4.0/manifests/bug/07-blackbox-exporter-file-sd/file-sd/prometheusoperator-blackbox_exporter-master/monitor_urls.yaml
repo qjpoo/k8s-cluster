@@ -1,0 +1,4 @@
+- targets:
+   - https://www.baidu.com
+   - https://agent.***.com
+   - https://master.****.com

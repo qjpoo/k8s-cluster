@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: webmonitoring
+  namespace: monitoring
+spec:
+  groups:
+    - name: WebMonitoring
+      rules:
+      - alert: WebSite is not accessible now!
+        annotations:
+          message: Website - {{ $labels.instance }} is down
+          summary:  WebSite is down
+        expr: |
+          sum(probe_success) by (instance) !=1
+        for: 3m
+        labels:
+          severity: critical

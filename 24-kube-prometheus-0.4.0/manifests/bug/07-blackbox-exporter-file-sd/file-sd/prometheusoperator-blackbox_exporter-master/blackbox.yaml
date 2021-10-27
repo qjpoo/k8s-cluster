@@ -1,0 +1,49 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  labels:
+    app: blackbox
+  name: blackbox
+  namespace: monitoring
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: blackbox
+  template:
+    metadata:
+      labels:
+        app: blackbox
+    spec:
+      containers:
+      - image: prom/blackbox-exporter:master
+        name: blackbox
+        args:
+          - --config.file=/etc/blackbox_exporter/blackbox.yml
+        ports:
+        - containerPort: 9115
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /probe?target=https://www.baidu.com/&module=http_2xx
+            port: http
+          initialDelaySeconds: 10
+        resources:
+          limits:
+            cpu: 200m
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        volumeMounts:
+        - mountPath: /etc/blackbox_exporter/
+          name: blackbox-config
+          readOnly: false
+
+      nodeSelector:
+#        beta.kubernetes.io/os: linux
+         dedicatedfor: publicservice
+      volumes:
+      - configMap:
+          name: blackbox-config
+        name: blackbox-config

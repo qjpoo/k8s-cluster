@@ -1,0 +1,44 @@
+- job_name: 'kubernetes-pods'
+
+  kubernetes_sd_configs:
+  - role: pod
+  relabel_configs:
+  # POD的 annotation 中含有"prometheus.io/scrape: true" 的则保留，
+  # 意思就是会被Prometheus抓取，不具有这个的POD则不会被抓取
+  - action: keep
+    regex: true
+    source_labels:
+    - __meta_kubernetes_pod_annotation_prometheus_io_scrape
+  # 获取POD的 annotation 中定义的"prometheus.io/path: XXX"定义的值，
+  # 这个值就是你的程序暴露符合prometheus规范的metrics的地址，如果你的
+  # metrics的地址不是 /metrics 的话，通过这个标签说，那么这里就会把这个
+  # 值赋值给 __metrics_path__这个变量，因为prometheus是通过这个变量
+  # 获取路径然后进行拼接出来一个完整的URL，并通过这个URL来获取metrics值的，
+  # 因为prometheus默认使用的就是 http(s)://X.X.X.X/metrics
+  # 这样一个路径来获取的。
+  - action: replace
+    regex: (.+)
+    source_labels:
+    - __meta_kubernetes_pod_annotation_prometheus_io_path
+    target_label: __metrics_path__
+  # 这里是端口信息，因为你的程序很有可能在容器中并不是以80端口运行的，
+  # 那么就需要做一个拼接http(s)://x.x.x.x:xx/metrics
+  # __address__在prometheus中代表的就是实例的IP地址，
+  # 而POD中的annotation 中定义的"prometheus.io/port: XX"就是你程序
+  # 被访问到的端口，最终在prometheus中将会被显示为 instance=X.X.X.X:XX这样
+  - action: replace
+    regex: ([^:]+)(?::\d+)?;(\d+)
+    replacement: $1:$2
+    source_labels:
+    - __address__
+    - __meta_kubernetes_pod_annotation_prometheus_io_port
+    target_label: __address__
+
+  - action: labelmap
+    regex: __meta_kubernetes_pod_label_(.+)
+  - source_labels: [__meta_kubernetes_namespace]
+    action: replace
+    target_label: kubernetes_namespace
+  - source_labels: [__meta_kubernetes_pod_name]
+    action: replace
+    target_label: kubernetes_pod_name

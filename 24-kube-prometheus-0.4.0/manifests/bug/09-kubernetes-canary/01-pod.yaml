@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-svc
+  namespace: default
+  labels:
+    appname: myapp-svc
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 5555
+    targetPort: 5555
+  selector:
+    appname: myapp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-deploy-v1.0
+  namespace: default
+  labels:
+    appname: myapp
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      appname: myapp
+      release: 1.0.0
+  template:
+    metadata:
+      name: myapp
+      labels:
+        appname: myapp
+        release: 1.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5555"
+    spec:
+      containers:
+      - name: myapp
+        image: harbor.scm.local/jian/myapp:v1.0
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+        ports:
+        - name: http
+          containerPort: 5555
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /healthy
+            port: http
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 2
+        readinessProbe:
+          httpGet:
+            path: /healthy
+            port: http
+          initialDelaySeconds: 20
+          periodSeconds: 10
+  revisionHistoryLimit: 10
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+

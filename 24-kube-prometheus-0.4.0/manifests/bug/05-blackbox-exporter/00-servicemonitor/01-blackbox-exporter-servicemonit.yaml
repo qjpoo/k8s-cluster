@@ -1,0 +1,72 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    name: blackbox-exporter
+    release: p
+  name: blackbox-exporter
+  namespace: monitoring
+spec:
+  namespaceSelector:
+    matchNames:
+    - monitoring
+  selector:
+    matchLabels:
+      name: blackbox-exporter
+  endpoints:
+  - interval: 15s
+    port: http-metrics
+    path: /probe
+    relabelings:
+    - action: replace
+      regex: (.*)
+      replacement: $1
+      sourceLabels:
+      - __meta_kubernetes_service_label_cluster
+      targetLabel: cluster
+    - action: replace
+      regex: (.*)
+      replacement: $1
+      sourceLabels:
+      - __param_module
+      targetLabel: module
+    - action: replace
+      regex: (.*)
+      replacement: $1
+      sourceLabels:
+      - __param_target
+      targetLabel: target
+    params:
+      module:
+      - http_2xx
+      target:
+      - http://www.dg-mall.com    # Target to probe with http.
+      - https://www.qq.com   # Target to probe with https.
+      - http://www.diangoumall.com:8080 # Target to probe with http on port 8080.
+  - interval: 15s
+    port: http-metrics
+    path: /probe
+    relabelings:
+    - action: replace
+      regex: (.*)
+      replacement: $1
+      sourceLabels:
+      - __meta_kubernetes_service_label_cluster
+      targetLabel: cluster
+    - action: replace
+      regex: (.*)
+      replacement: $1
+      sourceLabels:
+      - __param_module
+      targetLabel: module
+    - action: replace
+      regex: (.*)
+      replacement: $1
+      sourceLabels:
+      - __param_target
+      targetLabel: target
+    params:
+      module:
+      - dns_k8s
+      target:
+      - 10.10.0.10 # dns ip address, this is coredns IP addr

@@ -1,0 +1,31 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Alertmanager
+metadata:
+  labels:
+    alertmanager: main
+  name: main
+  namespace: monitoring
+spec:
+  baseImage: quay.io/prometheus/alertmanager
+  nodeSelector:
+    kubernetes.io/os: linux
+  replicas: 3
+  securityContext:
+    fsGroup: 2000
+    runAsNonRoot: true
+    runAsUser: 1000
+  serviceAccountName: alertmanager-main
+  resources:
+    requests:
+      memory: 100Mi
+    limits:
+      memory: 1Gi
+  version: v0.18.0
+  retention: 168h               # 注意，这里最大的单位是h,没有d。
+  storage:                      # 存储配置
+    volumeClaimTemplate:
+      spec:
+        storageClassName: dg-nfs-storage   # 假设sc名为nfs-storage
+        resources:
+          requests:
+            storage: 4Gi
