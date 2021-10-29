@@ -1,0 +1,8 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: traefik-exposed-dashboard-basic-auth
+  namespace: monitoring
+spec:
+  basicAuth:
+    secret: traefik-ui-auth

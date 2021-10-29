@@ -1,0 +1,17 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: prometheus-route
+  namespace: monitoring
+spec:
+  entryPoints:
+  - web
+  routes:
+  - kind: Rule
+    match: Host(`p.dg.local`)
+    middlewares:
+    - name: traefik-exposed-dashboard-basic-auth
+      namespace: monitoring
+    services:
+    - name: prometheus-k8s
+      port: 9090

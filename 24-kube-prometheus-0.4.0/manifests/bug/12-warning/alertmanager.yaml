@@ -4,7 +4,7 @@ global:
   smtp_smarthost: 'smtp.exmail.qq.com:25'
   smtp_from: 'admin@qq.com'
   smtp_auth_username: 'admin@qq.com'
-  smtp_auth_password: 'OPcoYDZZuioqHGY'
+  smtp_auth_password: 'OPcoYoqHGYuiqwd'
   smtp_require_tls: false
 
 # 定义模板信息
@@ -27,12 +27,9 @@ receivers:
       html: '{{ template "email.html" . }}' # 设定邮箱的内容模板
       headers: { Subject: "[WARN] 报警邮件"} # 接收邮件的标题
       send_resolved: true
-    #webhook_configs: # webhook配置，不需要可以注释掉
-    #- url: 'http://127.0.0.1:5001'
 
     wechat_configs: # 企业微信报警配置,不需要可以注释掉
     - corp_id: '9ujcbm71ekkk12uiwsa' # 企业信息(我的企业-->CorpId[在底部])
-      #to_user: '@all'
       to_party: '2' # 接收组的id
       agent_id: '1000011' # (企业微信-->自定应用-->AgentId)
       api_secret: 'OpilrAfvVkpA0hT8gRURAB77Cod_op9whgdu' # 企业微信(企业微信-->自定应用-->Secret)

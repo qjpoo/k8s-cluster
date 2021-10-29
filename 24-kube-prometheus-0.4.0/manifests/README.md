@@ -96,9 +96,9 @@ kubectl apply -f manifests/grafana-deployment.yaml
    3. alertmanager为30093
       kubectl  patch svc  alertmanager-main -n monitoring -p '{"spec":{"type":"NodePort","ports":[{"name":"web","port":9093,"protocol":"TCP","targetPort":"web","nodePort":30093}]}}'
 
-   我这里用的是traefik, 安装traefik详见以前章节的的安装步骤, 在此不说废话了.
+   我这里用的是traefik, 安装traefik详见以前章节的的安装步骤.
       1. grafana的ingressroute   
-         root@<master|192.168.1.23|~/demo/system/traefik/prod>:#cat g.yaml
+         cat g.yaml
          apiVersion: traefik.containo.us/v1alpha1
          kind: IngressRoute
          metadata:
@@ -114,48 +114,80 @@ kubectl apply -f manifests/grafana-deployment.yaml
                  - name: grafana
                    port: 3000
    
-      2. prometheus的ingressroute   
-         root@<master|192.168.1.23|~/demo/system/traefik/prod>:#cat p.yaml
-         apiVersion: traefik.containo.us/v1alpha1
-         kind: IngressRoute
-         metadata:
-           name: prometheus-route
-           namespace: monitoring
-         spec:
-           entryPoints:
-             - web
-           routes:
-             - match: Host(`p.dg.local`)
-               kind: Rule
-               services:
-                 - name: prometheus-k8s
-                   port: 9090
+     加一个中间件, 做一下basic auth
+     安装工具
+     yum -y install httpd-tools
 
-      3. alertmanager的ingressroute   
-         root@<master|192.168.1.23|~/demo/system/traefik/prod>:#cat a.yaml
-         apiVersion: traefik.containo.us/v1alpha1
-         kind: IngressRoute
-         metadata:
-           name: alertmanager-route
-           namespace: monitoring
-         spec:
-           entryPoints:
-             - web
-           routes:
-             - match: Host(`a.dg.local`)
-               kind: Rule
-               services:
-                 - name: alertmanager-main
-                   port: 9093
-      4. 查看ingressroute
-      root@<master|192.168.1.23|~/demo/system/traefik/prod>:#k get ingressroute
-      NAME                 AGE
-      alertmanager-route   80s
-      grafana-route        4s
-      prometheus-route     84s
+     生成一个文件auth, admin用户和admin密码:
+     htpasswd -bc auth admin dg-mall.com
+ 
+     先做一个用户名和密码的secret
+     kubectl create secret generic traefik-ui-auth --from-file=auth -n monitoring
 
-6. get po, svc
-   root@<master|192.168.1.23|~/demo/system/kube-prometheus-0.4.0/manifests/bug>:#k get po
+     中间件的yaml文件
+     cat middleware.yaml
+     apiVersion: traefik.containo.us/v1alpha1
+     kind: Middleware
+     metadata:
+       name: traefik-exposed-dashboard-basic-auth
+       namespace: monitoring
+     spec:
+       basicAuth:
+         secret: traefik-ui-auth
+
+      prometheus的ingressroute文件
+      cat p.dg.local.yaml
+      apiVersion: traefik.containo.us/v1alpha1
+      kind: IngressRoute
+      metadata:
+        name: prometheus-route
+        namespace: monitoring
+      spec:
+        entryPoints:
+        - web
+        routes:
+        - kind: Rule
+          match: Host(`p.dg.local`)
+          middlewares:
+          - name: traefik-exposed-dashboard-basic-auth
+            namespace: monitoring
+          services:
+          - name: prometheus-k8s
+            port: 9090
+
+      alertmanager的ingressroute文件
+      cat a.dg.local.yaml
+      apiVersion: traefik.containo.us/v1alpha1
+      kind: IngressRoute
+      metadata:
+        name: alertmanager-route
+        namespace: monitoring
+      spec:
+        entryPoints:
+          - web
+        routes:
+          - match: Host(`a.dg.local`)
+            kind: Rule
+            middlewares:
+            - name: traefik-exposed-dashboard-basic-auth
+              namespace: monitoring
+            services:
+              - name: alertmanager-main
+                port: 9093
+
+   原文件都在 13-baisc-auth下面
+   k create -f g.yaml
+   k create -f p.dg.local.yaml
+   k create -f  a.dg.local.yaml
+
+   k get ingressroute -n monitoring
+   NAME                 AGE
+   alertmanager-route   17h
+   grafana-route        9d
+   prometheus-route     22h
+
+
+   k get po
    NAME                                  READY   STATUS    RESTARTS   AGE
    alertmanager-main-0                   2/2     Running   0          22m
    alertmanager-main-1                   2/2     Running   0          22m
@@ -391,6 +423,7 @@ kubectl apply -f manifests/grafana-deployment.yaml
 
     执行里面的rules:
     k create -f bug/12-warning/rules/
+    这个里面的告警值, 根据自己观察业务的值来设置
 
     alertmanager.yaml.ok  这个文件是routes指定不同的labels来发送到不同的平台
 

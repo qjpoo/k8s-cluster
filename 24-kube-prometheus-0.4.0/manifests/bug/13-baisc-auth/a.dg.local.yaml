@@ -1,0 +1,17 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: alertmanager-route
+  namespace: monitoring
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`a.dg.local`)
+      kind: Rule
+      middlewares:
+      - name: traefik-exposed-dashboard-basic-auth
+        namespace: monitoring
+      services:
+        - name: alertmanager-main
+          port: 9093
