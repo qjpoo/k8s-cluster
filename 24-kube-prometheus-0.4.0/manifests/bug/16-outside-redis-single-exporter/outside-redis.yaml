@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: redis-metrics
+  namespace: monitoring
+  labels:
+    k8s-app: redis-metrics
+subsets:
+- addresses:
+    - ip: 192.168.1.17
+  ports:
+  - name: redis-exporter
+    port: 9121
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-metrics
+  namespace: monitoring
+  labels:
+    k8s-app: redis-metrics
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: redis-exporter
+    port: 9121
+    protocol: TCP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis-metrics
+  namespace: monitoring
+  labels:
+    k8s-app: redis-metrics
+spec:
+  jobLabel: k8s-app
+  endpoints:
+  - port: redis-exporter
+    interval: 15s
+    scheme: http
+  selector:
+    matchLabels:
+      k8s-app: redis-metrics
+    namespaceSelector:
+      matchNames:
+      - monitoring

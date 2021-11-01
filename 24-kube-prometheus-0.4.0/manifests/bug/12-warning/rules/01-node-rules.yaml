@@ -12,7 +12,7 @@ spec:
     rules:
     - alert: NodeFilesystemUsage
       expr: |
-        100 - (node_filesystem_free_bytes / node_filesystem_size_bytes) * 100 > 90
+        100 - (node_filesystem_free_bytes{fstype=~"ext4|xfs",mountpoint!~".*tmp|.*boot" } / node_filesystem_size_bytes{fstype=~"ext4|xfs",mountpoint!~".*tmp|.*boot"}) * 100 > 90
       for: 1m
       labels:
         severity: warning 
@@ -22,7 +22,8 @@ spec:
 
     #根据当前一小时内磁盘增长量，判断磁盘在 4 个小时内会不会被写满
     - alert: HostDiskWillFillIn4Hours
-      expr: predict_linear(node_filesystem_free_bytes{fstype!~"tmpfs"}[1h], 4 * 3600) < 0
+      #expr: predict_linear(node_filesystem_free_bytes{fstype!~"tmpfs"}[1h], 4 * 3600) < 0
+      expr: predict_linear(node_filesystem_free_bytes{fstype=~"ext4|xfs",mountpoint!~".*tmp|.*boot"}[1h], 4 * 3600) < 0
       for: 5m
       labels:
         severity: warning
@@ -41,13 +42,23 @@ spec:
 
     - alert: NodeMemoryUsage
       expr: |
-        100 - (node_memory_MemFree_bytes+node_memory_Cached_bytes+node_memory_Buffers_bytes) / node_memory_MemTotal_bytes * 100 > 90
+        #100 - (node_memory_MemFree_bytes+node_memory_Cached_bytes+node_memory_Buffers_bytes) / node_memory_MemTotal_bytes * 100 > 90
+         node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100 < 10
       for: 1m
       labels:
         severity: warning
       annotations:
         summary: "Instance {{ $labels.instance }} 内存使用率过高"
         description: "{{ $labels.instance }}内存使用大于90% (当前值: {{ $value }})"
+
+    - alert: HostCpuLoadAvage
+      expr: sum(node_load5) by (instance) > 5
+      for: 1m
+      annotations:
+        summary: "5分钟内CPU负载过高"
+        description: "主机: 【{{ $labels.instance }}】 5五分钟内CPU负载超过5 (当前值：{{ $value }})"
+      labels:
+        severity: 'warning'
 
     - alert: NodeCPUUsage    
       expr: |
@@ -69,50 +80,50 @@ spec:
         message: '{{ $labels.node }} 已经有10多分钟没有准备好了.'
 
     - alert: UnusualDiskReadRate
-      expr: sum by (instance) (irate(node_disk_read_bytes_total[2m])) / 1024 / 1024 > 10
+      expr: sum by (instance) (irate(node_disk_read_bytes_total[2m])) / 1024 / 1024 > 25
       for: 5m
       labels:
         severity: warning
       annotations:
         summary: "Unusual disk read rate (instance {{ $labels.instance }})"
-        description: "Disk is probably reading too much data (> 10 MB/s)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+        description: "Disk is probably reading too much data (> 20 MB/s)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
 
     - alert: UnusualDiskWriteRate
-      expr: sum by (instance) (irate(node_disk_written_bytes_total[2m])) / 1024 / 1024 > 10
+      expr: sum by (instance) (irate(node_disk_written_bytes_total[2m])) / 1024 / 1024 > 20
       for: 5m
       labels:
         severity: warning
       annotations:
         summary: "Unusual disk write rate (instance {{ $labels.instance }})"
-        description: "Disk is probably writing too much data (> 10 MB/s)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+        description: "Disk is probably writing too much data (> 20 MB/s)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
     
     - alert: UnusualDiskReadLatency
-      expr: rate(node_disk_read_time_seconds_total[1m]) / rate(node_disk_reads_completed_total[1m]) > 0.1 and rate(node_disk_reads_completed_total[1m]) > 0
+      expr: rate(node_disk_read_time_seconds_total[1m]) / rate(node_disk_reads_completed_total[1m]) > 0.3 and rate(node_disk_reads_completed_total[1m]) > 0
       for: 5m
       labels:
         severity: warning
       annotations:
         summary: "Unusual disk read latency (instance {{ $labels.instance }})"
-        description: "Disk latency is growing (read operations > 100ms)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+        description: "Disk latency is growing (read operations > 300ms)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
 
 
     - alert: UnusualDiskWriteLatency
-      expr: rate(node_disk_write_time_seconds_total[1m]) / rate(node_disk_writes_completed_total[1m]) > 0.1 and rate(node_disk_writes_completed_total[1m]) > 0
+      expr: rate(node_disk_write_time_seconds_total[1m]) / rate(node_disk_writes_completed_total[1m]) > 0.3 and rate(node_disk_writes_completed_total[1m]) > 0
       for: 5m
       labels:
         severity: warning
       annotations:
         summary: "Unusual disk write latency (instance {{ $labels.instance }})"
-        description: "Disk latency is growing (write operations > 100ms)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+        description: "Disk latency is growing (write operations > 300ms)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
 
     - alert: DiskReadIOPS
-      expr: rate(node_disk_reads_completed_total[3m]) > 300
+      expr: rate(node_disk_reads_completed_total[3m]) > 750
       for: 5m
       labels:
         severity: warning
       annotations:
         summary: "disk read iops too high (instance {{ $labels.instance }})"
-        description: "Disk read iops is growing (read iops operations > 300)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+        description: "Disk read iops is growing (read iops operations > 750)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
 
     - alert: DiskWriteIOPS
       expr: rate(node_disk_writes_completed_total[3m]) > 350
@@ -123,6 +134,15 @@ spec:
         summary: "disk write iops too high (instance {{ $labels.instance }})"
         description: "Disk write iops is growing (write iops operations > 350)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
 
+    - alert: HostIOWait
+      expr: ((sum(increase(node_cpu_seconds_total{mode="iowait"}[5m])) by (instance))/(sum(increase(node_cpu_seconds_total[5m])) by (instance)))*100 > 10
+      for: 1m
+      annotations:
+        summary: "磁盘负载过高"
+        description: "主机: 【{{ $labels.instance }}】 5五分钟内磁盘负载过高 (当前负载值：{{ $value }})"
+      labels:
+        severity: 'warning'
+
 
     - alert: HostOomKillDetected
       expr: increase(node_vmstat_oom_kill[5m]) > 0
@@ -132,3 +152,30 @@ spec:
       annotations:
         summary: Host OOM kill detected (instance {{ $labels.instance }})
         description: "OOM kill detected VALUE = {{ $value }} LABELS: {{ $labels }}"
+
+    - alert: HostNetworkConnection-ESTABLISHED
+      expr:  sum(node_netstat_Tcp_CurrEstab) by (instance) > 1500
+      for: 5m
+      labels:
+        severity: 'warning'
+      annotations:
+        summary: "主机ESTABLISHED连接数过高"
+        description: "主机: 【{{ $labels.instance }}】 ESTABLISHED连接数超过1500, 当前ESTABLISHED连接数: {{ $value }}"
+
+    - alert: HostNetworkConnection-TIME_WAIT
+      expr:  sum(node_sockstat_TCP_tw) by (instance) > 3000
+      for: 5m
+      labels:
+        severity: 'warning'
+      annotations:
+        summary: "主机TIME_WAIT连接数过高"
+        description: "主机: 【{{ $labels.instance }}】 TIME_WAIT连接数超过3000, 当前TIME_WAIT连接数: {{ $value }}"
+
+    - alert: HostOutOfInodes
+      expr: node_filesystem_files_free{fstype=~"ext4|xfs",mountpoint!~".*tmp|.*boot" } / node_filesystem_files{fstype=~"ext4|xfs",mountpoint!~".*tmp|.*boot" } * 100 < 10
+      for: 2m
+      labels:
+        severity: 'warning'
+      annotations:
+        summary: "主机分区Inode节点不足"
+        description: "主机: 【{{ $labels.instance }}】 {{ $labels.mountpoint }}分区inode节点不足 (可用值小于{{ $value }}%)"

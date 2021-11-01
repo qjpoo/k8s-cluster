@@ -1,11 +1,11 @@
 # 全局配置项
 global:
   resolve_timeout: 5m # 处理超时时间，默认为5min
-  smtp_smarthost: 'smtp.exmail.qq.com:25'
+  smtp_smarthost: 'smtp.exmail.qq.com:587'
   smtp_from: 'admin@qq.com'
   smtp_auth_username: 'admin@qq.com'
   smtp_auth_password: 'OPcoYoqHGYuiqwd'
-  smtp_require_tls: false
+  smtp_require_tls: true
 
 # 定义模板信息
 templates:

@@ -12,12 +12,12 @@ spec:
     rules:
     - alert: PodCPUUsage
       expr: |
-         sum by(pod, namespace) (rate(container_cpu_usage_seconds_total{image!=""}[5m]) * 100) > 80
+         sum by(pod, namespace) (rate(container_cpu_usage_seconds_total{image!=""}[5m]) * 100) > 90
       for: 5m
       labels:
         severity: warning 
       annotations:
-        summary: "命名空间: {{ $labels.namespace }} | Pod名称: {{ $labels.pod }} CPU使用大于80% (当前值: {{ $value }})"
+        summary: "命名空间: {{ $labels.namespace }} | Pod名称: {{ $labels.pod }} CPU使用大于90% (当前值: {{ $value }})"
 
     - alert: PodMemoryUsage
       expr: |

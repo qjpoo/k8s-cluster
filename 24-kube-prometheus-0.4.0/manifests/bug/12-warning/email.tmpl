@@ -5,7 +5,7 @@
 告警级别: {{ .Labels.severity }} 级<br>
 告警类型: {{ .Labels.alertname }}<br>
 告警主题: {{ .Annotations.summary }}<br>
-⏱ : {{ (.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }} <br>
+告警⏱ : {{ (.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }} <br>
 </pre>
 {{ end }}{{ end -}}
 {{- if gt (len .Alerts.Resolved) 0 -}}{{ range .Alerts }}
@@ -14,8 +14,8 @@
 告警级别: {{ .Labels.severity }} 级<br>
 告警类型: {{ .Labels.alertname }}<br>
 恢复主题: {{ .Annotations.summary }}<br>
-⏱ : {{ (.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}<br>
-恢复时间：{{ .EndsAt.Format "2006-01-02 15:04:05" }} <br>
+告警⏱ : {{ (.StartsAt.Add 28800e9).Format "2006-01-02 15:04:05" }}<br>
+恢复时间：{{ (.EndsAt.Add 28800e9).Format "2006-01-02 15:04:05" }} <br>
 </pre>
 {{ end }}{{ end -}}
 {{- end }}

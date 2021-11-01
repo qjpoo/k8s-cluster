@@ -96,9 +96,9 @@ kubectl apply -f manifests/grafana-deployment.yaml
    3. alertmanager为30093
       kubectl  patch svc  alertmanager-main -n monitoring -p '{"spec":{"type":"NodePort","ports":[{"name":"web","port":9093,"protocol":"TCP","targetPort":"web","nodePort":30093}]}}'
 
-   我这里用的是traefik, 安装traefik详见以前章节的的安装步骤.
+   我这里用的是traefik, 安装traefik详见以前章节的的安装步骤, 在此不说废话了.
       1. grafana的ingressroute   
-         cat g.yaml
+         root@<master|192.168.1.23|~/demo/system/traefik/prod>:#cat g.yaml
          apiVersion: traefik.containo.us/v1alpha1
          kind: IngressRoute
          metadata:
@@ -114,80 +114,48 @@ kubectl apply -f manifests/grafana-deployment.yaml
                  - name: grafana
                    port: 3000
    
-     加一个中间件, 做一下basic auth
-     安装工具
-     yum -y install httpd-tools
+      2. prometheus的ingressroute   
+         root@<master|192.168.1.23|~/demo/system/traefik/prod>:#cat p.yaml
+         apiVersion: traefik.containo.us/v1alpha1
+         kind: IngressRoute
+         metadata:
+           name: prometheus-route
+           namespace: monitoring
+         spec:
+           entryPoints:
+             - web
+           routes:
+             - match: Host(`p.dg.local`)
+               kind: Rule
+               services:
+                 - name: prometheus-k8s
+                   port: 9090
 
-     生成一个文件auth, admin用户和admin密码:
-     htpasswd -bc auth admin dg-mall.com
- 
-     先做一个用户名和密码的secret
-     kubectl create secret generic traefik-ui-auth --from-file=auth -n monitoring
+      3. alertmanager的ingressroute   
+         root@<master|192.168.1.23|~/demo/system/traefik/prod>:#cat a.yaml
+         apiVersion: traefik.containo.us/v1alpha1
+         kind: IngressRoute
+         metadata:
+           name: alertmanager-route
+           namespace: monitoring
+         spec:
+           entryPoints:
+             - web
+           routes:
+             - match: Host(`a.dg.local`)
+               kind: Rule
+               services:
+                 - name: alertmanager-main
+                   port: 9093
+      4. 查看ingressroute
+      root@<master|192.168.1.23|~/demo/system/traefik/prod>:#k get ingressroute
+      NAME                 AGE
+      alertmanager-route   80s
+      grafana-route        4s
+      prometheus-route     84s
 
-     中间件的yaml文件
-     cat middleware.yaml
-     apiVersion: traefik.containo.us/v1alpha1
-     kind: Middleware
-     metadata:
-       name: traefik-exposed-dashboard-basic-auth
-       namespace: monitoring
-     spec:
-       basicAuth:
-         secret: traefik-ui-auth
-
-      prometheus的ingressroute文件
-      cat p.dg.local.yaml
-      apiVersion: traefik.containo.us/v1alpha1
-      kind: IngressRoute
-      metadata:
-        name: prometheus-route
-        namespace: monitoring
-      spec:
-        entryPoints:
-        - web
-        routes:
-        - kind: Rule
-          match: Host(`p.dg.local`)
-          middlewares:
-          - name: traefik-exposed-dashboard-basic-auth
-            namespace: monitoring
-          services:
-          - name: prometheus-k8s
-            port: 9090
-
-      alertmanager的ingressroute文件
-      cat a.dg.local.yaml
-      apiVersion: traefik.containo.us/v1alpha1
-      kind: IngressRoute
-      metadata:
-        name: alertmanager-route
-        namespace: monitoring
-      spec:
-        entryPoints:
-          - web
-        routes:
-          - match: Host(`a.dg.local`)
-            kind: Rule
-            middlewares:
-            - name: traefik-exposed-dashboard-basic-auth
-              namespace: monitoring
-            services:
-              - name: alertmanager-main
-                port: 9093
-
-   原文件都在 13-baisc-auth下面
-   k create -f g.yaml
-   k create -f p.dg.local.yaml
-   k create -f  a.dg.local.yaml
-
-   k get ingressroute -n monitoring
-   NAME                 AGE
-   alertmanager-route   17h
-   grafana-route        9d
-   prometheus-route     22h
-
-
-   k get po
+6. get po, svc
+   root@<master|192.168.1.23|~/demo/system/kube-prometheus-0.4.0/manifests/bug>:#k get po
    NAME                                  READY   STATUS    RESTARTS   AGE
    alertmanager-main-0                   2/2     Running   0          22m
    alertmanager-main-1                   2/2     Running   0          22m
@@ -364,6 +332,8 @@ kubectl apply -f manifests/grafana-deployment.yaml
     先生成additional-configs secret, 然后在执行如下二步
     k create -f 00-blackbox-exporter-cm.yaml
     k create -f  prometheus-additional.yaml
+
+    导入black exporter的grafana模版 9965
     
     
 14. endpoints自动发现, 把这个job加入到prometheus-additional.yaml
@@ -423,10 +393,47 @@ kubectl apply -f manifests/grafana-deployment.yaml
 
     执行里面的rules:
     k create -f bug/12-warning/rules/
-    这个里面的告警值, 根据自己观察业务的值来设置
 
     alertmanager.yaml.ok  这个文件是routes指定不同的labels来发送到不同的平台
 
+
+17. 单个redis监控
+    进入到bug/13-outside-redis-single-exporter
+    修改里面的地址
+    - addresses:
+      - ip: 192.168.1.17
+    k create -f outside-redis.yaml
+    导入redis的grafana模版: https://grafana.com/grafana/dashboards/763
+
+18. 监控集群redis
+    进入到bug/14-outside-redis-cluster-exporter, 修改redis cluster的地址
+    k create -f prometheus-additional.yaml
+    grafana导入先导入上面的763模版, 然后在导入目录中的redis-cluster集群.json  模版文件即可
+
+19. node_exporter
+    先要到需要监控的目标节点上, 安装和启动 node_exporter
+    进入到bug/11-outside-exporter, 修改里面要监控的节点IP
+    k create -f .
+    导入node_exporter的grafana模版: 8919
+
+20. 监控elasticsearch集群
+    先去下载elasticsearch-exporter, 执行如下命令, 我的是一台节点上跑了三个elasticsearch
+    nohup ./elasticsearch_exporter --web.listen-address ":9700"  --es.uri http://192.168.1.15:9200 &>>/dev/null &
+    nohup ./elasticsearch_exporter --web.listen-address ":9701"  --es.uri http://192.168.1.15:9201 &>>/dev/null &
+    nohup ./elasticsearch_exporter --web.listen-address ":9702"  --es.uri http://192.168.1.15:9202 &>>/dev/null &
+    查看有没有结果, 有返回, 说明是正确的
+    curl 127.0.0.1:9700/metrics
+    
+    进入到bug/15-outside-elasearch-exporter目录中去, 执行如下命令
+    k delete secret additional-configs
+    kubectl create secret generic additional-configs --from-file=prometheus-additional.yaml -n monitoring 
+    导入elasticsearch_exporter的grafana模版: 6483
+    https://grafana.com/grafana/dashboards/6483
+   
+    如果elasticsearch有用户名和密码的话:
+    /usr/local/elasticsearch_exporter/elasticsearch_exporter --web.listen-address ":9308" --es.uri=http://username:password@192.168.1.15:9200
+
+    
 ----------------------------------------------------------------------------------------------
 troubleshooting:
 我把我遇到的问题, 尽可能回忆起来, 因为这一路坑太多了

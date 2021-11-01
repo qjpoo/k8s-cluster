@@ -1,0 +1,111 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: outside-redis-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: outside-redis.rules
+    rules:
+    - alert: RedisDown
+      expr: redis_up == 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: 'Redis down'
+        description: "Redis实例: 【{{ $labels.instance }}】, Redis instance is down"
+
+    - alert: RedisMissingMaster
+      expr: count(redis_instance_info{role="master"}) < 3
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: 'Redis missing master'
+        description: "Redis cluster has no node marked as master."
+
+    - alert: RedisTooManyMasters
+      expr: count(redis_instance_info{role="master"}) > 3
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: 'Redis too many masters'
+        description: "Redis cluster has too many nodes marked as master."
+
+    - alert: RedisDisconnectedSlaves
+      expr: count without (instance, job) (redis_connected_slaves) - sum without (instance, job) (redis_connected_slaves) - 1 > 3
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: 'Redis disconnected slaves'
+        description: "Redis not replicating for all slaves. Consider reviewing the redis replication status."
+
+    - alert: RedisReplicationBroken
+      expr: delta(redis_connected_slaves[1m]) < 0
+      for: 0m
+      labels:
+        severity: critical
+      annotations:
+        summary: 'Redis replication broken'
+        description: "Redis实例: 【{{ $labels.instance }}】,Redis instance lost a slave"
+
+    - alert: RedisClusterFlapping
+      expr: changes(redis_connected_slaves[1m]) > 1
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: 'Redis cluster flapping'
+        description: "Redis实例: 【{{ $labels.instance }}】,Changes have been detected in Redis replica connection. This can occur when replica nodes lose connection to the master and reconnect (a.k.a flapping)."
+
+    - alert: RedisMissingBackup
+      expr: time() - redis_rdb_last_save_timestamp_seconds > 60 * 60 * 24
+      for: 0m
+      labels:
+        severity: critical
+      annotations:
+        summary: 'Redis missing backup'
+        description: "Redis实例: 【{{ $labels.instance }}】,Redis has not been backuped for 24 hours"
+
+    - alert: RedisOutOfConfiguredMaxmemory
+      #expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 90
+      expr: redis_memory_used_bytes / 1024 /1024 /1024 > 1
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: 'Redis out of configured maxmemory'
+        description: "Redis实例: 【{{ $labels.instance }}】,Redis is running out of configured maxmemory (> 90%), Current Value: {{ $value }}"
+
+    - alert: RedisTooManyConnections
+      expr: redis_connected_clients > 100
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: 'Redis too many connections'
+        description: "Redis实例: 【{{ $labels.instance }}】, Redis instance has too many connections, Current Value: {{ $value }}"
+
+    - alert: RedisNotEnoughConnections
+      expr: redis_connected_clients < 5
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: 'Redis not enough connections'
+        description: "Redis实例: 【{{ $labels.instance }}】, Redis instance should have more connections (> 5), Current Value: {{ $value }}"
+
+    - alert: RedisRejectedConnections
+      expr: increase(redis_rejected_connections_total[1m]) > 0
+      for: 0m
+      labels:
+        severity: critical
+      annotations:
+        summary: 'Redis rejected connections'
+        description: "Redis实例: 【{{ $labels.instance }}】, Some connections to Redis has been rejected, Current Value: {{ $value }}"
