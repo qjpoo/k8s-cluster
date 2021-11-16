@@ -433,6 +433,9 @@ kubectl apply -f manifests/grafana-deployment.yaml
     如果elasticsearch有用户名和密码的话:
     /usr/local/elasticsearch_exporter/elasticsearch_exporter --web.listen-address ":9308" --es.uri=http://username:password@192.168.1.15:9200
 
+21. 监控traefik, 可以通过prometheus-additional.yaml里面添加target, 或者用servicemonitor来
+    详见bug/17-traefik里面的配置
+    模版ID: 4475
     
 ----------------------------------------------------------------------------------------------
 troubleshooting:
