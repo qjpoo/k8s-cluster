@@ -1,0 +1,78 @@
+#apiVersion: batch/v2alpha1 #for API server versions >= 1.8.0 use batch/v1beta1
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: curator
+  namespace: log
+  labels:
+    app: curator
+spec:
+  schedule: "00 03 * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 120
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - image: bobrik/curator:5.8.1
+            name: curator
+            args: ["--config", "/etc/config/config.yml", "/etc/config/action_file.yml"]
+            resources:
+              requests:
+                cpu: 100m
+                memory: 500Mi
+              limits:
+                cpu: 300m
+                memory: 800Mi
+            volumeMounts:
+            - name: config
+              mountPath: /etc/config
+          volumes:
+          - name: config
+            configMap:
+              name: curator-config
+          restartPolicy: OnFailure
+
+#---
+#apiVersion: batch/v1beta1
+#kind: CronJob
+#metadata:
+#  name: curator
+#  namespace: log
+#spec:
+#  schedule: "00 03 * * *"
+#  jobTemplate:
+#    spec:
+#      template:
+#        spec:
+#          containers:
+#          - name: curator
+#            #image: quay.io/sighup/curator
+#            image: bitnami/elasticsearch-curator:5.8.4
+#            command: ["curator"]
+#            args: ["--config", "/config/config.yml", "/config/action.yml"]
+#            env:
+#            - name: ES_HOST
+#              value: elasticsearch
+#            - name: UNIT
+#              value: days
+#            - name: UNIT_COUNT
+#              value: "15"
+#            resources:
+#              requests:
+#                cpu: 100m
+#                memory: 500Mi
+#              limits:
+#                cpu: 300m
+#                memory: 800Mi
+#            volumeMounts:
+#            - name: curator-config
+#              mountPath: /config
+#          restartPolicy: OnFailure
+#          volumes:
+#          - name: curator-config
+#            configMap:
+#              name: curator

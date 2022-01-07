@@ -1,0 +1,127 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-config
+  namespace: log
+data:
+  logstash.yml: |
+    http.host: "0"
+    http.port: 9600
+    path.config: /usr/share/logstash/pipeline
+    config.reload.automatic: true
+    xpack.monitoring.enabled: true
+    xpack.monitoring.elasticsearch.username: logstash_system
+    xpack.monitoring.elasticsearch.password: mtg$5hmqhHU6ydAobkb
+    xpack.monitoring.elasticsearch.hosts: ["http://elasticsearch:9200"]
+    xpack.monitoring.collection.interval: 10s
+    pipeline.workers: 24
+    pipeline.batch.size: 5000
+    pipeline.batch.delay: 10
+
+  jvm.options: |
+    -Xms2g
+    -Xmx2g
+    -XX:+UseConcMarkSweepGC
+    -XX:CMSInitiatingOccupancyFraction=75
+    -XX:+UseCMSInitiatingOccupancyOnly
+    -Djava.awt.headless=true
+    -Dfile.encoding=UTF-8
+    -Djruby.compile.invokedynamic=true
+    -Djruby.jit.threshold=0
+    -Djruby.regexp.interruptible=true
+    -XX:+HeapDumpOnOutOfMemoryError
+    -Djava.security.egd=file:/dev/urandom
+    -Dlog4j2.isThreadContextMapInheritable=true
+
+  logstash.conf: |
+    #input {
+    #  beats {
+    #    port => 5040
+    #    #codec => "json"
+    #  }
+    #}
+    input {
+      redis {
+        host => "redis"
+        port => "6379"
+        password => "2x9KkNbNaXkJ"
+        db => "0"
+        data_type => "list"
+        key => "filebeat"
+        threads => 16
+      }
+    }
+
+    filter {
+      json {
+        source => "message"
+      }
+
+      #  dg  namespace, financial app name
+      if [k8s][nameSpace] == "dg" and [k8s][appName] == "financial" {
+        grok {
+          match => [ "message", "%{TIMESTAMP_ISO8601:timeFlag}\s+%{LOGLEVEL:logLevel}\s+(\[(?<appname>[a-z,-]+)\] )?%{NUMBER:id}\s+---\s+\[(?<thread>[a-zA-Z0-9,-:#]+)\]\s+(?<ServiceImpl>[a-zA-Z0-9.]+)\s+: (?<msg>.*)" ]
+          #remove_field => [ "message" ]
+          remove_field => [ "ServiceImpl", "timeFlag", "appname", "id", "thread", "tags" ]
+        }
+
+         if "_grokparsefailure" in [tags] or "_jsonparsefailure" in [tags] {
+            drop { }
+         }else {
+            date {
+              locale => "en"
+              match => ["time", "ISO8601"]
+            }
+            #mutate {
+            #  gsub => ["appname", ",", ""]
+            #}
+         }
+      }
+
+      #  headline namespace
+      if [k8s][nameSpace] == "headline" {
+        grok {
+          match => [ "message", "%{TIMESTAMP_ISO8601:timeFlag}\s+%{LOGLEVEL:logLevel}\s+(\[(?<appname>[a-z,-]+)\] )?%{NUMBER:id}\s+---\s+\[(?<thread>[a-zA-Z0-9,-:#]+)\]\s+(?<ServiceImpl>[a-zA-Z0-9.]+)\s+: (?<msg>.*)" ]
+          remove_field => [ "ServiceImpl", "timeFlag", "appname", "id", "thread", "tags" ]
+        }
+         if "_grokparsefailure" in [tags] or "_jsonparsefailure" in [tags] {
+            drop { }
+         }else {
+            date {
+              locale => "en"
+              match => ["time", "ISO8601"]
+           }
+            #mutate {
+            #  gsub => ["appname", ",", ""]
+            #}
+        }
+      }
+    }
+
+    output {
+      #if "_grokparsefailure" not in [tags] and "_jsonparsefailure" not in [tags] {
+         if [k8s][nameSpace] == "dg" {
+            elasticsearch {
+              hosts => ["elasticsearch:9200"]
+              user => "elastic"
+              password => "mtg$5hmqhHU6ydAobkb"
+              index => "%{[k8s][nameSpace]}-%{[k8s][appName]}-%{+YYYY.MM.dd}"
+              pool_max => 2000
+              pool_max_per_route => 500
+            }
+            #stdout { codec => rubydebug { metadata =>true }}
+         }
+
+         if [k8s][nameSpace] == "headline" {
+            elasticsearch {
+              hosts => ["elasticsearch:9200"]
+              user => "elastic"
+              password => "mtg$5hmqhHU6ydAobkb"
+              index => "%{[k8s][nameSpace]}-%{[k8s][appName]}-%{+YYYY.MM.dd}"
+              pool_max => 2000
+              pool_max_per_route => 500
+            }
+            #stdout { codec => rubydebug { metadata =>true }}
+         }
+       #}
+    }

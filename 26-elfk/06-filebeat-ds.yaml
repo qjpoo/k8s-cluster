@@ -1,0 +1,205 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: filebeat-config
+  namespace: log
+data:
+  filebeat.yml: |-
+    filebeat.inputs:
+    - type: container
+      enabled: true
+      paths:
+      - /var/log/containers/*financial*.log
+      #- /var/log/containers/*store*.log
+      #- /var/log/containers/*dg-around-order*.log
+      tail_files: true
+
+    - type: container
+      enabled: true
+      paths:
+      - /var/log/containers/*_headline_*.log
+      fields:
+        namespace: headline
+
+    #- type: container
+    #  enabled: true
+    #  paths:
+    #  - /var/log/containers/*_kube-system_*.log
+    #  fields:
+    #    namespace: kube-system
+    filebeat.config.modules:
+      path: ${path.config}/modules.d/*.yml
+      reload.enabled: false
+
+    processors:
+      - add_kubernetes_metadata:
+          #default_indexers.enabled: true
+          #default_matchers.enabled: true
+          host: ${NODE_NAME}
+          matchers:
+          - logs_path:
+              logs_path: "/var/log/containers/"
+
+      - script:
+          lang: javascript
+          id: format_k8s
+          tag: enable
+          source: >
+            function process(event) {
+                var k8s=event.Get("kubernetes");
+                var newK8s = {
+                    podName: k8s.pod.name,
+                    nameSpace: k8s.namespace,
+                    imageAddr: k8s.container.image,
+                    hostName: k8s.node.name,
+                    appName: k8s.labels.app,
+                    k8sName: "dg-k8s-cluster"
+                }
+                event.Put("k8s", newK8s);
+            }
+      - drop_fields:
+          fields:
+            - host
+            - ecs
+            - log
+            - agent
+            - input
+            - stream
+            - container
+            - kubernetes
+          ignore_missing: true
+
+    #output.console:
+    #  pretty: true
+    #output.logstash:
+    #  hosts: ["logstash:5040"]
+    #  enabled: true
+    #  worker: 1
+    #  compression_level: 3
+    output.redis:
+      hosts: ["redis:6379"]
+      password: "2x9KkNbNaXkJ"
+      key: "filebeat"
+      db: 0
+      datatype: list
+      worker: 16
+      compression_level: 3
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: filebeat
+  namespace: log 
+  labels:
+    k8s-app: filebeat
+spec:
+  selector:
+    matchLabels:
+      k8s-app: filebeat
+  template:
+    metadata:
+      labels:
+        k8s-app: filebeat
+    spec:
+      serviceAccountName: filebeat
+      terminationGracePeriodSeconds: 30
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      tolerations:                  #容忍master节点的污点
+        - effect: NoSchedule        #容忍master节点的污点
+          operator: Exists          #容忍master节点的污点
+      containers:
+      - name: filebeat
+        image: docker.elastic.co/beats/filebeat:7.10.1
+        args: [
+          "-c", "/etc/filebeat.yml",
+          "-e",
+        ]
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        securityContext:
+          runAsUser: 0
+          # If using Red Hat OpenShift uncomment this:
+          #privileged: true
+        resources:
+          limits:
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        volumeMounts:
+        - name: config
+          mountPath: /etc/filebeat.yml
+          readOnly: true
+          subPath: filebeat.yml
+        - name: data
+          mountPath: /usr/share/filebeat/data
+        - name: varlibdockercontainers
+          mountPath: /dgmall/docker/containers
+          readOnly: true
+        - name: varlog
+          mountPath: /var/log
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          defaultMode: 0640
+          name: filebeat-config
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibdockercontainers
+        hostPath:
+          path: /dgmall/docker/containers
+      # data folder stores a registry of read status for all files, so we don't send everything again on a Filebeat pod restart
+      - name: data
+        hostPath:
+          # When filebeat runs as non-root user, this directory needs to be writable by group (g+w).
+          path: /var/lib/filebeat-data
+          type: DirectoryOrCreate
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: filebeat
+subjects:
+- kind: ServiceAccount
+  name: filebeat
+  namespace: log
+roleRef:
+  kind: ClusterRole
+  name: filebeat
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: filebeat
+  labels:
+    k8s-app: filebeat
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources:
+  - namespaces
+  - pods
+  - nodes
+  verbs:
+  - get
+  - watch
+  - list
+- apiGroups: ["apps"]
+  resources:
+    - replicasets
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: filebeat
+  namespace: log 
+  labels:
+    k8s-app: filebeat

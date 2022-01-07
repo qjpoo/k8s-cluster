@@ -1,0 +1,69 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: cerebro
+  namespace: log
+  labels:
+    app: cerebro
+spec:
+  ports:
+    - port: 9000
+      name: http
+      protocol: TCP
+      nodePort: 30940
+  type: NodePort
+  selector:
+    app: cerebro
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cerebro
+  namespace: log
+  labels:
+    app: cerebro
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cerebro
+  template:
+    metadata:
+      labels:
+        app: cerebro
+    spec:
+      containers:
+        - name: cerebro
+          image: lmenezes/cerebro:0.9.4
+          ports:
+            - containerPort: 9000
+              name: http
+          env:
+          - name: ELASTICSEARCH_URL
+            value: "http://elasticsearch:9200"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 600m
+              memory: 800Mi
+          readinessProbe:
+            initialDelaySeconds: 120
+            httpGet:
+              path: /
+              port: http
+          livenessProbe:
+            initialDelaySeconds: 120
+            httpGet:
+              path: /
+              port: http
+          volumeMounts:
+            - name: cerebro-config
+              mountPath: /opt/cerebro/conf/application.conf
+              subPath: application.conf
+      volumes:
+        - name: cerebro-config
+          configMap:
+            name: cerebro-config

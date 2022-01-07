@@ -1,0 +1,134 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: redis-config
+  namespace: log
+  labels:
+    app: redis
+data:
+  redis.conf: |-
+    dir /data
+    port 6379
+    bind 0.0.0.0
+    #关闭rdb
+    appendonly no
+    daemonize no
+    requirepass 2x9KkNbNaXkJ
+    pidfile /data/redis-6379.pid
+    # 禁用快照
+    save ""
+    #save 900 1
+    #save 300 10
+    #save 60 1000
+    rdbchecksum yes
+    #dbfilename dump.rdb 
+    #maxmemory为0的时候表示我们对Redis的内存使用没有限制
+    maxmemory 0
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis
+  namespace: log
+  annotations:
+    volume.beta.kubernetes.io/storage-class: "dg-nfs-storage"
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 1024Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  labels:
+    app: redis
+spec:
+  type: ClusterIP
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+  selector:
+    app: redis
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  labels:
+    app: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: node2
+      containers:
+      - name: redis
+        image: redis:3.0.7
+        command:
+          - "sh"
+          - "-c"
+          - "redis-server /usr/local/redis/redis.conf"
+        ports:
+        - containerPort: 6379
+        resources:
+          limits:
+            cpu: 500m
+            memory: 2048Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        livenessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 300
+          timeoutSeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: config
+          mountPath:  /usr/local/redis/redis.conf
+          subPath: redis.conf
+        - mountPath: /usr/share/zoneinfo/Asia/Shanghai
+          name: tz-config
+        - mountPath: /etc/localtime
+          name: tz-config
+        #- mountPath: /etc/timezone
+        #  name: timezone
+      volumes:
+      - name: config
+        configMap:
+          name: redis-config
+      - name: data
+        persistentVolumeClaim:
+          claimName: redis
+      - name: tz-config
+        hostPath:
+          path: /usr/share/zoneinfo/Asia/Shanghai
+          type: ""
+      #- hostPath:
+      #    path: /etc/timezone
+      #    type: ""
+      #  name: timezone
