@@ -415,6 +415,7 @@ kubectl apply -f manifests/grafana-deployment.yaml
     进入到bug/11-outside-exporter, 修改里面要监控的节点IP
     k create -f .
     导入node_exporter的grafana模版: 8919
+    也可以使用目录中的修改版本
 
 20. 监控elasticsearch集群
     先去下载elasticsearch-exporter, 执行如下命令, 我的是一台节点上跑了三个elasticsearch
@@ -436,7 +437,110 @@ kubectl apply -f manifests/grafana-deployment.yaml
 21. 监控traefik, 可以通过prometheus-additional.yaml里面添加target, 或者用servicemonitor来
     详见bug/17-traefik里面的配置
     模版ID: 4475
+
+
+22. 监控bind
+    进入到19-outside-bind
+    k create -f outside-bind.yaml
+    grafana导入模版ID是1666, 但是这个模版太旧了, 我修改了一下, 你可以直接用里面的json文件, 导入到grafana就可以了
+    bug/12-warning/rules/08-bind.yaml 这个是告警rule
+
+
+23. 监控nginx
+    prometheus 监控 nginx 使用 nginx-vts-exporter 采集数据。同时，需要 nginx 支持 nginx-module-vts 模块获取 nginx 自身的一些数据。
+    nginx模版要有nginx-moudle-vts这个模块, -add-module=/path/to/nginx-module-vts 
+    ./configure --prefix=/usr/local/nginx --sbin-path=/usr/local/nginx/sbin/nginx  --conf-path=/usr/local/nginx/conf/nginx.conf --user=nginx --group=nginx --add-module=./nginx-module-vts
+    make && make install
+    修改nginx 配置
+    `
+    http {
+        vhost_traffic_status_zone;
+        vhost_traffic_status_filter_by_host on;   #开启此功能，会根据不同的server_name进行流量的统计，否则默认会把流量全部计算到第一个上。
+        ...
+        server {
+            listen 1212；
+            allow 127.0.0.1；
+            allow prometheus_server_ip;  #替换为你的prometheus ip；
     
+          location /nginx-status {
+              stub_status on;
+              access_log off;
+          }
+            location /status {
+            vhost_traffic_status_display;    
+            vhost_traffic_status_display_format html;
+            }
+                    }
+            }
+    在不想统计流量的server 区域(未规范配置server_name或者无需进行监控的server上)可以禁用 vhost_traffic_status：
+    
+    server {
+    vhost_traffic_status off；
+    ...
+    }
+    数据展示
+    curl 127.0.0.1:1212/nginx-status
+    
+    
+    Active connections: 当前nginx正在处理的活动连接数.
+    Server accepts handled requests: nginx启动以来总共处理了52783270 个连接,成功创建52783270 握手(证明中间没有失败的),总共处理了136279681 个请求。
+    Reading: nginx读取到客户端的Header信息数.
+    Writing: nginx返回给客户端的Header信息数.
+    Waiting: 开启keep-alive的情况下,这个值等于 active – (reading + writing),意思就是nginx已经处理完成,正在等候下一次请求指令的驻留连接。
+    所以,在访问效率高,请求很快被处理完毕的情况下,Waiting数比较多是正常的.如果reading +writing数较多,则说明并发访问量非常大,正在处理过程中。
+    
+    访问http://127.0.0.1:1212/status,可以得到各种参数
+    
+    访问 http://127.0.0.1:1212/status/format/prometheus 可直接获取prometheus格式的监控数据。
+    访问 http://127.0.0.1:1212/status/format/json 可直接获取json格式的监控数据。
+    
+    接入prometheus
+    接入prometheus有两种方式:
+    直接用nginx-vts-exporter数据源 和 nginx-vts-exporter 抓取vts数据传向prometheus
+    
+    nginx-vts-exporter数据源
+    将http://127.0.0.1:1212/status/format/prometheus数据源直接接入prometheus
+    
+    nginx-vts-exporter 抓取vts数据传向prometheus
+    nginx-vts-exporter 安装使用
+    
+    wget -c https://github.com/hnlq715/nginx-vts-exporter/releases/download/v0.9.1/nginx-vts-exporter-0.9.1.linux-amd64.tar.gz
+    tar -xvf nginx-vts-exporter-0.9.1.linux-amd64.tar.gz -C /usr/local/
+    cd /usr/local/nginx-vts-exporter-0.9.1.linux-amd64/
+    ./nginx-vts-exporter  -nginx.scrape_uri http://127.0.0.1:1212/status/format/json &
+    端口为9913，查看数据：
+    
+    curl http://127.0.0.1:9913/metrics > nginx_data
+    在Prometheus中添加此target 便可接入。
+    
+    k create -f out-nginx.yaml
+    
+    常用监控规则：
+    求Nginx的QPS：
+    sum(irate(nginx_server_requests{code="total",host=~"$DomainName"}[5m]))
+
+    求4xx万分率（5xx类似，code=“5xx”）：
+    (sum(irate(nginx_server_requests{code="4xx",host=~"$DomainName"}[5m])) / sum(irate(nginx_server_requests{code="total",host=~"$DomainName"}[5m]))) * 10000
+
+    求upstream的QPS(示例求group1的qps):
+    sum(irate(nginx_upstream_requests{code="total",upstream="group1"}[5m]))
+
+    求upstream后端server的响应时间（示例求group1的后端响应时间）：
+    nginx_upstream_responseMsec{upstream=“group1”}
+
+    `
+    这个$DomainName规则可以根据实际的情况来写比如 *.baidu.com
+    这些值根据实际来写, 可以在prometheus里面调试好了, 在写
+
+    rule在 bug/12-warning/rules/09-nginx.yaml里面
+    模版ID: 2949
+    优化版: bug/20-nginx_vts_exporte/nginx.json
+    
+24. 监控tomcat, 这个须要安装exporter, 只监控了一下主要的几个url和几个端口
+    只写了一下rule 10-tomcat.yaml
+
+25. 监控NFS
+    bug/21-nfs/nfs.json这个是json文件, 在NFS服务器上安装node-exporter就可以了
 ----------------------------------------------------------------------------------------------
 troubleshooting:
 我把我遇到的问题, 尽可能回忆起来, 因为这一路坑太多了
