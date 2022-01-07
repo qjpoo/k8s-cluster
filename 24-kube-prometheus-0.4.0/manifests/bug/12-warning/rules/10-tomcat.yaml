@@ -1,0 +1,41 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: tomcat-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: tomcat.rules
+    rules:
+    - alert: "black exporter service port down"
+      expr: |
+        probe_success == 0
+      for: 5m
+      labels:
+        severity: warning 
+      annotations:
+        description: "service port down"
+        summary: "service: {{ $labels.instance }} tags: {{ $labels.tags }} down。当前值为：{{ $value }}s"
+
+    # 堆空间使用超过90%
+    #- alert: heap-usage-too-much
+    #  expr: jvm_memory_bytes_used{job="java", area="heap"} / jvm_memory_bytes_max * 100 > 90
+    #  for: 1m
+    #  labels:
+    #    severity: red
+    #  annotations:
+    #    summary: "JVM Instance {{ $labels.instance }} memory usage > 90%"
+    #    description: "{{ $labels.instance }} of job {{ $labels.job }} has been in status [heap usage > 90%] for more than 1 minutes. current usage ({{ $value }}%)"
+
+    # 在5分钟里，Old GC花费时间超过80%
+    #- alert: old-gc-time-too-much
+    #  expr: increase(jvm_gc_collection_seconds_sum{gc="PS MarkSweep"}[5m]) > 5 * 60 * 0.8
+    #  for: 5m
+    #  labels:
+    #    severity: yellow
+    #  annotations:
+    #    summary: "JVM Instance {{ $labels.instance }} Old GC time > 80% running time"
+    #    description: "{{ $labels.instance }} of job {{ $labels.job }} has been in status [Old GC time > 80% running time] for more than 5 minutes. current seconds ({{ $value }}%)"

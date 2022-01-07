@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: bind-metrics
+  namespace: monitoring
+  labels:
+    k8s-app: bind-metrics
+subsets:
+- addresses:
+    - ip: 192.168.1.28
+  ports:
+  - name: bind-exporter
+    port: 9119
+    protocol: UDP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bind-metrics
+  namespace: monitoring
+  labels:
+    k8s-app: bind-metrics
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: bind-exporter
+    port: 9119
+    protocol: UDP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: bind-metrics
+  namespace: monitoring
+  labels:
+    k8s-app: bind-metrics
+spec:
+  jobLabel: k8s-app
+  endpoints:
+  - port: bind-exporter
+    interval: 15s
+    scheme: http
+  selector:
+    matchLabels:
+      k8s-app: bind-metrics
+    namespaceSelector:
+      matchNames:
+      - monitoring

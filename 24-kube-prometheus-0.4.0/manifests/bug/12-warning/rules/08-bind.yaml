@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: bind-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: bind.rules
+    rules:
+    - alert: "Was the Bind instance query successful?"
+      expr: |
+        bind_up == 0
+      for: 1m
+      labels:
+        severity: warning 
+      annotations:
+        summary: "bind节点状态!"
+        description: "DNS-node {{ $labels.instance }} 状态NotReady"

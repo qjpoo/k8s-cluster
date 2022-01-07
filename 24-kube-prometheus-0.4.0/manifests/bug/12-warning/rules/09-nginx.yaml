@@ -1,0 +1,62 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    prometheus: k8s
+    role: alert-rules
+  name: nginx-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: nginx.rules
+    rules:
+    - alert: "Nginx QPS"
+      expr: |
+        sum(irate(nginx_server_requests{code="total",host=~"*"}[5m])) > 2000
+      for: 5m
+      labels:
+        severity: warning 
+      annotations:
+        summary: "nginx QPS gt 1000"
+        description: "nginx QPS gt 2000 {{ $labels.instance }} 状态"
+
+    - alert: "Nginx 4xx Code"
+      expr: |
+        sum(nginx_server_requests{code="4xx",host=~"*"}) / sum(nginx_server_requests{code="total",host=~"*"}) * 10000  > 1000
+      for: 5m
+      labels:
+        severity: warning 
+      annotations:
+        summary: "nginx 4xx Code gt 1000"
+        description: "nginx 4xx Code gt 1000 {{ $labels.instance }} 状态"
+
+    - alert: "Nginx 5xx Code"
+      expr: |
+        (sum(nginx_server_requests{code="5xx",host=~"*"}) / sum(nginx_server_requests{code="total",host=~"*"})) * 10000  > 100
+      for: 5m
+      labels:
+        severity: warning 
+      annotations:
+        summary: "nginx 5xx Code gt 100"
+        description: "nginx 5xx Code gt 100 {{ $labels.instance }} 状态"
+
+
+    - alert: "Nginx upstream QPS"
+      expr: |
+        sum(irate(nginx_upstream_requests{code="total",upstream =~ "*"}[5m]))> 100 
+      for: 5m
+      labels:
+        severity: warning 
+      annotations:
+        summary: "nginx upstream QPS"
+        description: "nginx upstream QPS gt 100 {{ $labels.instance }} 状态"
+
+    - alert: "Nginx upstream responseMsec"
+      expr: |
+        nginx_upstream_responseMsec / 1000  > 100
+      for: 5m
+      labels:
+        severity: warning 
+      annotations:
+        description: "nginx upstream response time gt 100s"
+        summary: "Nginx {{ $labels.instance }}后端集群{{ $labels.upstream }} 中{{ $labels.backend }}的响应时间大于100s。当前值为：{{ $value }}s"
