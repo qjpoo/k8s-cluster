@@ -4,6 +4,7 @@
 
 ## 主要是修改名称空间和NFS服务器的地址和路径就可以了
 ```
+用helm安装, 可以参考 [链接] (https://artifacthub.io/packages/helm/nfs-subdir-external-provisioner/nfs-subdir-external-provisioner)
 高版本(v1.20)的kubernetes好像是弃用nfs了, 要使用在apiserver的yaml文件添加参数:
 
 修改/etc/kubernetes/manifests/kube-apiserver.yaml 文件
